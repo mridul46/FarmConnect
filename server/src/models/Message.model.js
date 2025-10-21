@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 const messageSchema = new mongoose.Schema({
   chatRoomId: {
     type: mongoose.Schema.Types.ObjectId,

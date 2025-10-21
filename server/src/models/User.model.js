@@ -94,13 +94,12 @@ const userSchema = new mongoose.Schema(
     },
 
     bankDetails: {
-      accountNumber: { type: String, trim: true, select: false },
-      ifscCode: { type: String, trim: true, uppercase: true, select: false },
-      accountHolderName: { type: String, trim: true, select: false },
+      accountNumber: { type: String, trim: true,},
+      ifscCode: { type: String, trim: true, uppercase: true, },
+      accountHolderName: { type: String, trim: true,  },
       upiId: {
         type: String,
         trim: true,
-        select: false,
         validate: {
           validator: v => !v || /^[\w.-]+@[\w.-]+$/.test(v),
           message: 'Invalid UPI ID format',

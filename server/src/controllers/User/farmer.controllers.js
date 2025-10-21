@@ -5,7 +5,8 @@
 
 import { Product } from "../../models/Product.model.js";
 import { Order } from "../../models/Order.model.js";
-
+import { asyncHandler } from "../../utils/asyncHandler.js";
+import { User } from "../../models/User.model.js";
 // Get farmer dashboard stats
 export const getFarmerStats = asyncHandler(async (req, res) => {
   const farmerId = req.user._id;
@@ -114,55 +115,60 @@ export const getFarmerStats = asyncHandler(async (req, res) => {
 });
 
 // Update farmer-specific profile fields
-export const updateFarmerProfile = asyncHandler(async (req, res) => {
+ export const updateFarmerProfile = asyncHandler(async (req, res) => {
   const { shopName, bankDetails } = req.body;
-  
-  if (req.user.role !== 'farmer') {
+
+  if (req.user.role !== "farmer") {
     return res.status(403).json({
       success: false,
-      message: 'Only farmers can update these fields'
+      message: "Only farmers can update these fields",
     });
   }
-  
+
+  // Initialize update object
   const updateFields = {};
+
   if (shopName) updateFields.shopName = shopName;
-  
-  // FIXED: Properly update nested bankDetails
+
   if (bankDetails) {
-    if (bankDetails.accountNumber) {
-      updateFields['bankDetails.accountNumber'] = bankDetails.accountNumber;
+    // Ensure bankDetails is an object in the document
+    const existingUser = await User.findById(req.user._id).select("bankDetails");
+    if (!existingUser.bankDetails || typeof existingUser.bankDetails !== "object") {
+      existingUser.bankDetails = {};
     }
-    if (bankDetails.ifscCode) {
-      updateFields['bankDetails.ifscCode'] = bankDetails.ifscCode.toUpperCase();
-    }
-    if (bankDetails.accountHolderName) {
-      updateFields['bankDetails.accountHolderName'] = bankDetails.accountHolderName;
-    }
+
+    if (bankDetails.accountNumber) existingUser.bankDetails.accountNumber = bankDetails.accountNumber;
+    if (bankDetails.ifscCode) existingUser.bankDetails.ifscCode = bankDetails.ifscCode.toUpperCase();
+    if (bankDetails.accountHolderName) existingUser.bankDetails.accountHolderName = bankDetails.accountHolderName;
+
     if (bankDetails.upiId) {
-      // Validate UPI format
       const upiRegex = /^[\w.-]+@[\w.-]+$/;
       if (!upiRegex.test(bankDetails.upiId)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid UPI ID format'
+          message: "Invalid UPI ID format",
         });
       }
-      updateFields['bankDetails.upiId'] = bankDetails.upiId;
+      existingUser.bankDetails.upiId = bankDetails.upiId;
     }
+
+    // Set the modified bankDetails object
+    updateFields.bankDetails = existingUser.bankDetails;
   }
-  
-  const user = await User.findByIdAndUpdate(
+
+  const updatedUser = await User.findByIdAndUpdate(
     req.user._id,
     { $set: updateFields },
-    { new: true, runValidators: true }
-  ).select('+bankDetails');  // Include bankDetails in response
-  
+    { new: true, runValidators: true, context: "query" }
+  ).select("+bankDetails");
+
   res.status(200).json({
     success: true,
-    message: 'Farmer profile updated successfully',
-    data: user
+    message: "Farmer profile updated successfully",
+    data: updatedUser,
   });
 });
+
 // Get nearby farmers (public)
 export const getNearbyFarmers = asyncHandler(async (req, res) => {
   const { lat, lng, radius = 10, page = 1, limit = 20 } = req.query;
