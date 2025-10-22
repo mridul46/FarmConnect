@@ -18,10 +18,16 @@ app.get('/',(req,res)=>
 import healthCheckRouter from './src/routes/healthCheck.routes.js'
 import authRouter from './src/routes/auth.routes.js'
 import farmerRoutes from "./src/routes/farmer.routes.js";
+import consumerRoutes from "./src/routes/consumer.route.js"
+import commonRoutes from "./src/routes/common.routes.js"
+import adminRoutes from './src/routes/admin.routes.js'
 
 app.use('/api/v1/healthcheck',healthCheckRouter);
 app.use('/api/v1/auth', authRouter);
 app.use("/api/v1/farmer", farmerRoutes);
+app.use("/api/v1/consumer",consumerRoutes)
+app.use("/api/v1/common",commonRoutes)
+app.use("/api/v1/admin",adminRoutes)
 const PORT= process.env.PORT || 5000
 app.listen(PORT,()=>{
     console.log(`Server is running on port no ${PORT}`)

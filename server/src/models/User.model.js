@@ -60,6 +60,10 @@ const userSchema = new mongoose.Schema(
         message: 'Avatar must be a valid URL',
       },
     },
+     wishlist: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product"
+    }],
 
     address: {
       street: { type: String, trim: true },
