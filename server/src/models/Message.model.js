@@ -81,4 +81,4 @@ messageSchema.post('save', async function() {
   }
 });
 
-module.exports = mongoose.model('Message', messageSchema);
+export const Message = mongoose.model('Message', messageSchema);
