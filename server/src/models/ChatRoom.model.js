@@ -93,4 +93,4 @@ chatRoomSchema.statics.findOrCreate = async function(user1Id, user2Id, productId
   return room.populate('participants', 'name avatar shopName');
 };
 
-module.exports = mongoose.model('ChatRoom', chatRoomSchema);
+export const ChatRoom = mongoose.model('ChatRoom', chatRoomSchema);

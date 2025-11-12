@@ -12,6 +12,7 @@ import commonRoutes from "./src/routes/common.routes.js";
 import adminRoutes from "./src/routes/admin.routes.js";
 import orderRoutes from "./src/routes/order.routes.js"
 import  messageRoutes from "./src/routes/message.routes.js"
+import chatRoomRoutes from "./src/routes/chatRoom.routes.js "
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -36,5 +37,6 @@ app.use("/api/v1/common", commonRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/orders",orderRoutes)
 app.use("/api/v1/messages", messageRoutes)
+app.use("/api/v1/chatroom",chatRoomRoutes)
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
