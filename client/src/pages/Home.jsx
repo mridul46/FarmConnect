@@ -1,18 +1,23 @@
 import React from 'react'
-import Navbar from '../Components/layout/Navbar'
-import HeroSection from '../Components/home/HeroSection'
-import StatsSection from '../Components/home/StatsSection'
-import FeaturesSection from '../Components/home/FeaturesSection'
-import HowItWorks from '../Components/home/HowItWorks'
-import BenefitsSection from '../Components/home/BenefitsSection'
-import TestimonialsSection from '../Components/home/TestimonialsSection'
-import CTASection from '../Components/home/CTASection'
-import Footer from '../Components/layout/Footer'
+import Navbar from "../components/layout/Navbar";
+import HeroSection from "../components/home/HeroSection";
+import StatsSection from "../components/home/StatsSection";
+import FeaturesSection from "../components/home/FeaturesSection";
+import HowItWorks from "../components/home/HowItWorks";
+import BenefitsSection from "../components/home/BenefitsSection";
+import TestimonialsSection from "../components/home/TestimonialsSection";
+import CTASection from "../components/home/CTASection";
+import Footer from "../components/layout/Footer";
+import { useNavigate } from 'react-router-dom'
 const Home = () => {
+  const navigate=useNavigate()
+   const handleStartShopping = () => {
+    navigate("/products");
+  };
   return (
     <div className="min-h-screen bg-white">
      <Navbar/>
-      <HeroSection />
+      <HeroSection onStartShopping={handleStartShopping}/>
       <StatsSection />
       <FeaturesSection />
       <HowItWorks />

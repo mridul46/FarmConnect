@@ -1,11 +1,25 @@
-import React from "react"
-import { Routes, Route } from 'react-router-dom'
-import Home from './pages/Home'
+
+import React, { useRef } from "react"
+import { Routes, Route, useNavigate } from 'react-router-dom'
+import Home from './pages/Home/'
+import Products from './pages/Products'
 
 export default function App() {
+  const productsRef = useRef(null);
+  const navigate = useNavigate();
+
+  const handleStartShopping = () => {
+    navigate('/products');
+   // If you want to scroll within the same page instead:
+    setTimeout(() => {
+      productsRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 0);
+  };
+
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<Home onStartShopping={handleStartShopping} />} />
+      <Route path="/products" element={<Products ref={productsRef} />} />
     </Routes>
   );
 }
