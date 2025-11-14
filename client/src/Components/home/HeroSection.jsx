@@ -1,6 +1,6 @@
 import React from 'react'
 import {ShoppingBag, ChevronRight,Star} from 'lucide-react'
-export default function HeroSection({onStartShopping}) {
+export default function HeroSection({onStartShopping,farmerLogin}) {
   return (
    <section className="relative overflow-hidden py-24 px-6 md:px-10 bg-linear-to-r from-green-50 to-emerald-50">
       <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
@@ -31,7 +31,9 @@ export default function HeroSection({onStartShopping}) {
               <ChevronRight size={18} />
             </button>
 
-            <button className="px-8 py-4 border-2 border-green-600 text-green-700 font-semibold rounded-xl hover:bg-green-50 transition">
+            <button className="px-8 py-4 border-2 border-green-600 text-green-700 font-semibold rounded-xl hover:bg-green-100 transition-transform hover:scale-105 flex items-center gap-2 cursor-pointer"
+            onClick={farmerLogin}
+            >
               I'm a Farmer
             </button>
           </div>

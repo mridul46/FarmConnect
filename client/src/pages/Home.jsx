@@ -14,10 +14,15 @@ const Home = () => {
    const handleStartShopping = () => {
     navigate("/products");
   };
+
+  const handlefarmerLogin= ()=>{
+     navigate("/farmer");
+  }
+
   return (
     <div className="min-h-screen bg-white">
      <Navbar/>
-      <HeroSection onStartShopping={handleStartShopping}/>
+      <HeroSection onStartShopping={handleStartShopping}  farmerLogin={handlefarmerLogin}/>
       <StatsSection />
       <FeaturesSection />
       <HowItWorks />
