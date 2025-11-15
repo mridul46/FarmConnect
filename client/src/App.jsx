@@ -4,6 +4,7 @@ import { Routes, Route, useNavigate } from 'react-router-dom'
 import Home from './pages/Home/'
 import Products from './pages/Products'
 import  FarmerDashboard  from "./pages/FarmerDashboard";
+import CheckoutPage from "./pages/CheckoutPage";
 
 export default function App() {
   const productsRef = useRef(null);
@@ -29,6 +30,7 @@ export default function App() {
       <Route path="/" element={<Home onStartShopping={handleStartShopping} farmerLogin={handlefarmerLogin} />} />
       <Route path="/products" element={<Products ref={productsRef} />} />
       <Route path="/farmer" element={<FarmerDashboard ref={farmerRef}  />} />
+      <Route path="/checkout" element={<CheckoutPage />} />
     </Routes>
   );
 }

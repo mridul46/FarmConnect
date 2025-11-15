@@ -2,7 +2,13 @@ import React from "react";
 import ProductCard from "../components/Products/ProductCard";
 import { Leaf } from "lucide-react";
 import Footer from "../components/layout/Footer";
+import {useNavigate} from 'react-router-dom'
+
 export default function Products() {
+  const navigate= useNavigate()
+  const handleCheckOut = () => {
+    navigate("/checkout");
+  };
   const sampleProducts = [
     {
       _id: "1",
@@ -176,7 +182,9 @@ export default function Products() {
                 Filters
               </button>
       
-              <button className="px-5 sm:px-6 py-2.5 rounded-xl bg-green-600 text-white font-medium hover:bg-green-700 transition-colors shadow-lg shadow-green-600/30 w-full sm:w-auto">
+              <button className="px-5 sm:px-6 py-2.5 rounded-xl bg-green-600 text-white font-medium hover:bg-green-700 transition-colors shadow-lg shadow-green-600/30 w-full sm:w-auto cursor-pointer"
+              onClick={handleCheckOut}
+              >
                 Cart (0)
               </button>
       
