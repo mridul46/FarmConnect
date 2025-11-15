@@ -1,5 +1,5 @@
 import React from "react";
-import ProductCard from "../components/Products/ProductCard";
+import ProductCard from "../components/Products/ProductCard/";
 import { Leaf } from "lucide-react";
 import Footer from "../components/layout/Footer";
 import {useNavigate} from 'react-router-dom'
@@ -9,6 +9,7 @@ export default function Products() {
   const handleCheckOut = () => {
     navigate("/checkout");
   };
+  
   const sampleProducts = [
     {
       _id: "1",

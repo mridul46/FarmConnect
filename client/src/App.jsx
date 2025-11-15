@@ -5,6 +5,7 @@ import Home from './pages/Home/'
 import Products from './pages/Products'
 import  FarmerDashboard  from "./pages/FarmerDashboard";
 import CheckoutPage from "./pages/CheckoutPage";
+import ChatPage from "./pages/ChatPage";
 
 export default function App() {
   const productsRef = useRef(null);
@@ -31,6 +32,7 @@ export default function App() {
       <Route path="/products" element={<Products ref={productsRef} />} />
       <Route path="/farmer" element={<FarmerDashboard ref={farmerRef}  />} />
       <Route path="/checkout" element={<CheckoutPage />} />
+      <Route path="/chatroom" element={<ChatPage/>} />
     </Routes>
   );
 }

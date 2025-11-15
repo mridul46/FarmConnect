@@ -1,10 +1,12 @@
 import React from 'react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, MapPin, User, TrendingUp, MessageCircle } from 'lucide-react';
 
 export default function ProductCard({ product, onAddToCart, onViewDetails, onChat }) {
   const [isHovered, setIsHovered] = useState(false);
-
+  const navigate = useNavigate();
+  
   const getStockStatus = (quantity) => {
     if (quantity === 0) return { text: 'Out of Stock', color: 'text-red-600 bg-red-50' };
     if (quantity < 10) return { text: 'Low Stock', color: 'text-orange-600 bg-orange-50' };
@@ -52,7 +54,7 @@ export default function ProductCard({ product, onAddToCart, onViewDetails, onCha
               View Details
             </button>
             <button 
-              onClick={() => onChat(product.farmerId)}
+             onClick={() => navigate("/chatroom", { state: { farmerId: product.farmerId } })}
               className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700"
             >
               <MessageCircle size={18} />
