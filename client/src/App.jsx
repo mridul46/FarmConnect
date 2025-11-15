@@ -6,6 +6,7 @@ import Products from './pages/Products'
 import  FarmerDashboard  from "./pages/FarmerDashboard";
 import CheckoutPage from "./pages/CheckoutPage";
 import ChatPage from "./pages/ChatPage";
+import ConsumerDashboard from "./pages/ConsumerDashboard";
 
 export default function App() {
   const productsRef = useRef(null);
@@ -20,7 +21,7 @@ export default function App() {
     }, 0);
   };
  const handlefarmerLogin = () => {
-    navigate('/farmer');
+    navigate('/farmer/dashboard');
    // If you want to scroll within the same page instead:
     setTimeout(() => {
       farmerRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -30,9 +31,10 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Home onStartShopping={handleStartShopping} farmerLogin={handlefarmerLogin} />} />
       <Route path="/products" element={<Products ref={productsRef} />} />
-      <Route path="/farmer" element={<FarmerDashboard ref={farmerRef}  />} />
+      <Route path="/farmer/dashboard" element={<FarmerDashboard ref={farmerRef}  />} />
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/chatroom" element={<ChatPage/>} />
+      <Route path="/consumer/dashboard" element={<ConsumerDashboard />} />
     </Routes>
   );
 }

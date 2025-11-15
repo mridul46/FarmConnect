@@ -1,9 +1,20 @@
 import React from "react";
-import { Leaf, Menu, X } from "lucide-react";
+import { Leaf, Menu, X,Github } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user,setUser]= useState("consumer")
+  const navigate=useNavigate()
+
+  const handlefarmerLogin=()=>{
+    navigate('/farmer/dashboard')
+  }
+
+  const handleconsumerLogin =()=>{
+    navigate('/consumer/dashboard')
+  }
 
   const navLinks = [
     { label: "Features", href: "#features" },
@@ -39,11 +50,28 @@ export default function Navbar() {
 
         {/* CTA Buttons */}
         <div className="hidden md:flex items-center gap-3">
-          <button className="px-5 py-2.5 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors">
-            Sign In
-          </button>
+          <button
+            className="px-5 py-2.5 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+            onClick={() => {
+              if (user === "consumer") {
+                setUser("consumer");
+                handleconsumerLogin();
+              } else {
+                setUser("farmer");
+                handlefarmerLogin();
+              }
+            }}
+            >
+              Sign In
+            </button>
           <button className="px-5 py-2.5 bg-linear-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-green-600/30 transition-all">
             Get Started
+          </button>
+           <button
+           onClick={() => window.open("https://github.com/mridul46/FarmConnect", "_blank")}
+           className="cursor-pointer bg-green-300 hover:bg-gray-200 p-2 rounded-lg transition  "
+           >
+          < Github size={24} />
           </button>
         </div>
 
@@ -71,7 +99,9 @@ export default function Navbar() {
               </a>
             ))}
             <hr className="my-2" />
-            <button className="w-full px-5 py-2.5 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors">
+            <button 
+
+            className="w-full px-5 py-2.5 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors">
               Sign In
             </button>
             <button className="w-full px-5 py-2.5 bg-linear-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-green-600/30 transition-all">

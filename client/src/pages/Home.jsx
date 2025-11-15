@@ -16,7 +16,7 @@ const Home = () => {
   };
 
   const handlefarmerLogin= ()=>{
-     navigate("/farmer");
+     navigate("/farmer/dashboard");
   }
 
   return (
