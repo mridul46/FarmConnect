@@ -1,0 +1,38 @@
+export default [
+  {
+    rank: 1,
+    name: "Kumar Organic Farm",
+    owner: "Rajesh Kumar",
+    orders: 1245,
+    revenue: "₹425,000",
+    rating: 4.9,
+    products: 45,
+  },
+  {
+    rank: 2,
+    name: "Sharma Fresh Produce",
+    owner: "Priya Sharma",
+    orders: 1089,
+    revenue: "₹389,500",
+    rating: 4.8,
+    products: 38,
+  },
+  {
+    rank: 3,
+    name: "Patel Dairy Farm",
+    owner: "Amit Patel",
+    orders: 956,
+    revenue: "₹345,200",
+    rating: 4.7,
+    products: 28,
+  },
+  {
+    rank: 4,
+    name: "Green Valley Farms",
+    owner: "Sunita Devi",
+    orders: 823,
+    revenue: "₹298,400",
+    rating: 4.8,
+    products: 32,
+  },
+];

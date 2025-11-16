@@ -13,7 +13,7 @@ import Footer from "../components/layout/Footer.jsx";
 
 export default function ConsumerDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
-
+  
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50">
       <Header />

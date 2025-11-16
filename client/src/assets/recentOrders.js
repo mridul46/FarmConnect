@@ -1,0 +1,38 @@
+export default [
+  {
+    id: "#ORD-15847",
+    customer: "John Doe",
+    farmer: "Kumar Organic Farm",
+    items: 3,
+    amount: "₹450",
+    status: "delivered",
+    date: "2 hours ago",
+  },
+  {
+    id: "#ORD-15846",
+    customer: "Alice Smith",
+    farmer: "Sharma Fresh Produce",
+    items: 2,
+    amount: "₹320",
+    status: "out_for_delivery",
+    date: "4 hours ago",
+  },
+  {
+    id: "#ORD-15845",
+    customer: "Bob Johnson",
+    farmer: "Patel Dairy Farm",
+    items: 5,
+    amount: "₹680",
+    status: "preparing",
+    date: "6 hours ago",
+  },
+  {
+    id: "#ORD-15844",
+    customer: "Sarah Williams",
+    farmer: "Green Valley Farms",
+    items: 1,
+    amount: "₹150",
+    status: "pending",
+    date: "8 hours ago",
+  },
+];

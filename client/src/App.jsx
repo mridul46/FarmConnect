@@ -7,6 +7,7 @@ import  FarmerDashboard  from "./pages/FarmerDashboard";
 import CheckoutPage from "./pages/CheckoutPage";
 import ChatPage from "./pages/ChatPage";
 import ConsumerDashboard from "./pages/ConsumerDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 
 export default function App() {
   const productsRef = useRef(null);
@@ -35,6 +36,7 @@ export default function App() {
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/chatroom" element={<ChatPage/>} />
       <Route path="/consumer/dashboard" element={<ConsumerDashboard />} />
+      <Route path="/admin"  element={<AdminDashboard/>} />
     </Routes>
   );
 }
