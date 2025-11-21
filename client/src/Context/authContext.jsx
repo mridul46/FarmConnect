@@ -43,8 +43,7 @@ export const AuthProvider = ({ children }) => {
       const res = await axios.post("api/v1/auth/login", { email, password });
 
       const { accessToken, refreshToken, user } = res.data.data;
-      localStorage.setItem("token", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
+      saveSession(accessToken, user, refreshToken);
       return user;
     } catch (err) {
 

@@ -104,18 +104,37 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
+      
             <hr className="my-2" />
-            <button 
-
-            className="w-full px-5 py-2.5 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors">
+      
+            {/* MOBILE SIGN IN */}
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                if (user === "consumer") navigate("/consumer/dashboard");
+                else navigate("/farmer/dashboard");
+              }}
+              className="w-full px-5 py-2.5 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+            >
               Sign In
             </button>
-            <button className="w-full px-5 py-2.5 bg-linear-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-green-600/30 transition-all">
+      
+            {/* MOBILE GET STARTED */}
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                setUser("consumer");
+                navigate("/register/consumer");
+              }}
+              className="w-full px-5 py-2.5 bg-linear-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-green-600/30 transition-all"
+            >
               Get Started
             </button>
+      
           </div>
         </div>
-      )}
+       )}      
+
     </nav>
   );
 }

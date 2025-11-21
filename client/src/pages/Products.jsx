@@ -1,6 +1,6 @@
 import React from "react";
 import ProductCard from "../components/Products/ProductCard/";
-import { Leaf } from "lucide-react";
+import { Leaf ,ShoppingCart} from "lucide-react";
 import Footer from "../components/layout/Footer";
 import {useNavigate} from 'react-router-dom'
 
@@ -183,11 +183,15 @@ export default function Products() {
                 Filters
               </button>
       
-              <button className="px-5 sm:px-6 py-2.5 rounded-xl bg-green-600 text-white font-medium hover:bg-green-700 transition-colors shadow-lg shadow-green-600/30 w-full sm:w-auto cursor-pointer"
-              onClick={handleCheckOut}
-              >
-                Cart (0)
-              </button>
+            <button
+            onClick={() => handleCheckOut()}
+            className="w-full sm:w-auto px-4 py-2 rounded-xl flex items-center justify-center gap-2 
+            bg-linear-to-r from-green-600 to-emerald-600 text-white font-semibold text-sm sm:text-base 
+            hover:shadow-lg hover:shadow-green-600/30 transition-all"
+          >
+            <ShoppingCart size={18} />
+            View Cart (0)
+          </button>
       
             </div>
       

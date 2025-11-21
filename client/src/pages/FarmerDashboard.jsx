@@ -1,17 +1,24 @@
-import React, { useState } from 'react'
+import React, { useContext, useState } from 'react'
 import StatsCard from '../components/farmerDashboad/StatsCard'
 import QuickActions from '../components/farmerDashboad/QuickActions'
 import RecentActivity from '../components/farmerDashboad/RecentActivity'
-import OrdersTable from  '../components/farmerDashboad/OrdersTable'
-import ProductsList from  '../components/farmerDashboad/ProductsList'
+import OrdersTable from '../components/farmerDashboad/OrdersTable'
+import ProductsList from '../components/farmerDashboad/ProductsList'
 import EarningsCard from '../components/farmerDashboad/EarningsCard'
-import TopProducts from  '../components/farmerDashboad/TopProducts'
+import TopProducts from '../components/farmerDashboad/TopProducts'
 import Footer from '../components/layout/Footer'
 import { LogOut, Leaf } from 'lucide-react'
-
 import { DollarSign, Package, Clock, CheckCircle } from "lucide-react";
+import { useAuth } from '../Context/authContext'
+import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
+
+
 export default function FarmerDashboard() {
-  const[activeTab,setActiveTab] =useState("overview");
+  const [activeTab, setActiveTab] = useState("overview");
+  const {logout}=useAuth()
+  const navigate =useNavigate()
+
   const stats = [
     { label: "Total Revenue", value: "₹45,230", change: "+12.5%", icon: DollarSign, color: "green", trend: "up" },
     { label: "Active Products", value: "24", change: "+3 this week", icon: Package, color: "blue", trend: "up" },
@@ -44,67 +51,77 @@ export default function FarmerDashboard() {
     if (stock < 10) return { label: "Low Stock", color: "text-orange-600" };
     return { label: "In Stock", color: "text-green-600" };
   };
+   const handleLogout = async () => {
+    await logout(); 
+    toast.success("logout successfully")
+    navigate("/login");
+  };
+
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-green-50 via-white to-emerald-50">
+    <div className="min-h-screen bg-linear-to-r from-emerald-50 via-white to-green-100">
+
       {/* HEADER */}
-        <div className="bg-white border-b p-4 sm:p-6 shadow-sm">
-       <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-     
-         {/* Left Section */}
-         <div className="flex items-center gap-3 sm:gap-4">
-           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-green-600 to-emerald-600 rounded-xl flex items-center justify-center shadow-md shrink-0">
-             <Leaf size={24} className="text-white" />
-           </div>
-     
-           <div className="flex flex-col">
-             <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
-               Farmer Dashboard
-             </h1>
-             <p className="text-sm text-gray-600 hidden sm:block">
-               Welcome back, Rajesh Kumar! 👋
-             </p>
-           </div>
-         </div>
-     
-         {/* Right Section: Logout */}
-         <button className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg shadow-sm transition">
-           <LogOut size={18} className="sm:block" />
-           <span className="hidden sm:block">Logout</span>
-         </button>
-     
-       </div>
+      <div className="bg-white/80 backdrop-blur-md border-b p-4 sm:p-6 shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+
+          {/* Left Section */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-green-600 to-emerald-500 rounded-xl flex items-center justify-center shadow-md shrink-0">
+              <Leaf size={24} className="text-white" />
+            </div>
+
+            <div className="flex flex-col">
+              <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
+                Farmer Dashboard
+              </h1>
+              <p className="text-sm text-gray-600 hidden sm:block">
+                Welcome back, Rajesh Kumar! 👋
+              </p>
+            </div>
+          </div>
+
+          {/* Logout */}
+          <button 
+          onClick={()=>handleLogout()}
+          className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm font-medium rounded-lg shadow-md transition">
+            <LogOut size={18} />
+            <span className="hidden sm:block">Logout</span>
+          </button>
+        </div>
       </div>
 
-
-
+      {/* MAIN CONTENT */}
       <div className="max-w-7xl mx-auto p-6">
+
         {/* STATS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((s, i) => (
             <StatsCard stat={s} key={i} />
           ))}
         </div>
 
         {/* TABS */}
-        <div className="mt-8 bg-white rounded-2xl border shadow-sm">
-          <div className="border-b flex">
+        <div className="mt-8 bg-white/90 backdrop-blur-xl rounded-2xl border shadow-lg">
+          <div className="border-b flex overflow-x-auto">
             {["overview", "orders", "products"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-6 py-4 font-medium ${
-                  activeTab === tab ? "text-green-600 border-b-2 border-green-600 bg-green-50" : "text-gray-600"
-                }`}
+                className={`px-6 py-4 font-medium transition-all 
+                  ${activeTab === tab
+                    ? "text-green-600 border-b-2 border-green-600 bg-green-50"
+                    : "text-gray-600 hover:bg-gray-50"
+                  }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
           </div>
 
-          <div className="p-6">
+          <div className="p-6 animate-fadeIn">
             {activeTab === "overview" && (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 <QuickActions />
                 <RecentActivity />
               </div>
@@ -121,12 +138,14 @@ export default function FarmerDashboard() {
         </div>
 
         {/* BOTTOM CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
           <EarningsCard />
           <TopProducts />
         </div>
+
       </div>
-      <Footer/>
+
+      <Footer />
     </div>
   )
 }
