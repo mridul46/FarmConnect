@@ -1,13 +1,24 @@
+import React, { useRef } from "react";
+import { Routes, Route, useNavigate } from "react-router-dom";
 
-import React, { useRef } from "react"
-import { Routes, Route, useNavigate } from 'react-router-dom'
-import Home from './pages/Home/'
-import Products from './pages/Products'
-import  FarmerDashboard  from "./pages/FarmerDashboard";
+import Home from "./pages/Home/";
+import Products from "./pages/Products";
+import FarmerDashboard from "./pages/FarmerDashboard";
 import CheckoutPage from "./pages/CheckoutPage";
 import ChatPage from "./pages/ChatPage";
 import ConsumerDashboard from "./pages/ConsumerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+
+import LoginPage from "./pages/LoginPage";
+import ConsumerLogin from "./pages/ConsumerLogin";
+import FarmerLogin from "./pages/FarmerLogin";
+import AdminLogin from "./pages/AdminLogin";
+
+import ConsumerRegister from "./pages/ConsumerRegister";
+import FarmerRegister from "./pages/FarmerRegister";
+
+import Unauthorized from "./pages/Unauthorized";
+import ProtectedRoute from "./components/protected/ProtectedRoute";
 
 export default function App() {
   const productsRef = useRef(null);
@@ -15,28 +26,66 @@ export default function App() {
   const navigate = useNavigate();
 
   const handleStartShopping = () => {
-    navigate('/products');
-   // If you want to scroll within the same page instead:
+    navigate("/products");
     setTimeout(() => {
       productsRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 0);
   };
- const handlefarmerLogin = () => {
-    navigate('/farmer/dashboard');
-   // If you want to scroll within the same page instead:
+
+  const handleFarmerLoginScroll = () => {
+    navigate("/farmer/login");
     setTimeout(() => {
       farmerRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 0);
   };
+
   return (
     <Routes>
-      <Route path="/" element={<Home onStartShopping={handleStartShopping} farmerLogin={handlefarmerLogin} />} />
+      {/* Public Routes */}
+      <Route
+        path="/"
+        element={
+          <Home
+            onStartShopping={handleStartShopping}
+            farmerLogin={handleFarmerLoginScroll}
+          />
+        }
+      />
+
       <Route path="/products" element={<Products ref={productsRef} />} />
-      <Route path="/farmer/dashboard" element={<FarmerDashboard ref={farmerRef}  />} />
-      <Route path="/checkout" element={<CheckoutPage />} />
-      <Route path="/chatroom" element={<ChatPage/>} />
-      <Route path="/consumer/dashboard" element={<ConsumerDashboard />} />
-      <Route path="/admin"  element={<AdminDashboard/>} />
+
+      {/* Login & Register */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/consumer/login" element={<ConsumerLogin />} />
+      <Route path="/farmer/login" element={<FarmerLogin />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+
+      <Route path="/register/consumer" element={<ConsumerRegister />} />
+      <Route path="/register/farmer" element={<FarmerRegister />} />
+
+      <Route path="/unauthorized" element={<Unauthorized />} />
+
+      {/* Protected Routes */}
+
+      {/* Consumer Routes */}
+      <Route element={<ProtectedRoute allowedRoles={["consumer"]} />}>
+        <Route path="/consumer/dashboard" element={<ConsumerDashboard />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/chatroom" element={<ChatPage />} />
+      </Route>
+
+      {/* Farmer Routes */}
+      <Route element={<ProtectedRoute allowedRoles={["farmer"]} />}>
+        <Route
+          path="/farmer/dashboard"
+          element={<FarmerDashboard ref={farmerRef} />}
+        />
+      </Route>
+
+      {/* Admin Routes */}
+      <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      </Route>
     </Routes>
   );
 }

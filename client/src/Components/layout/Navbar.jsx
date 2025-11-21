@@ -15,7 +15,7 @@ export default function Navbar() {
   const handleconsumerLogin =()=>{
     navigate('/consumer/dashboard')
   }
-
+  
   const navLinks = [
     { label: "Features", href: "#features" },
     { label: "How it Works", href: "#how-it-works" },
@@ -64,7 +64,13 @@ export default function Navbar() {
             >
               Sign In
             </button>
-          <button className="px-5 py-2.5 bg-linear-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-green-600/30 transition-all">
+          <button
+          onClick={()=>{
+           setUser("consumer");
+           navigate("/register/consumer")
+          }}
+           className="px-5 py-2.5 bg-linear-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-green-600/30 transition-all cursor-pointer
+           ">
             Get Started
           </button>
            <button

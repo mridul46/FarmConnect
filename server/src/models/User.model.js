@@ -191,16 +191,6 @@ userSchema.pre('save', function (next) {
   next();
 });
 
-userSchema.pre('save', function (next) {
-  if (this.address?.coords?.lat !== undefined && this.address?.coords?.lng !== undefined) {
-    const { lat, lng } = this.address.coords;
-    this.address.coords = {
-      type: 'Point',
-      coordinates: [lng, lat],
-    };
-  }
-  next();
-});
 
 //
 // INSTANCE METHODS
