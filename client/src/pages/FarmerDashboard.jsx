@@ -16,7 +16,7 @@ import toast from 'react-hot-toast'
 
 export default function FarmerDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
-  const {logout}=useAuth()
+  const {user,logout}=useAuth()
   const navigate =useNavigate()
 
   const stats = [
@@ -56,7 +56,8 @@ export default function FarmerDashboard() {
     toast.success("logout successfully")
     navigate("/login");
   };
-
+  // derive display name & initials safely
+  const userName = user?.name || "Guest";
 
   return (
     <div className="min-h-screen bg-linear-to-r from-emerald-50 via-white to-green-100">
@@ -76,7 +77,7 @@ export default function FarmerDashboard() {
                 Farmer Dashboard
               </h1>
               <p className="text-sm text-gray-600 hidden sm:block">
-                Welcome back, Rajesh Kumar! 👋
+                Welcome back,<span className='text-green-600'> { userName}</span>👋
               </p>
             </div>
           </div>

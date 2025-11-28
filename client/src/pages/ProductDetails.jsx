@@ -16,6 +16,7 @@ export default function ProductDetailsUI() {
     navigate("/products")
   }
 
+
   // Sample product data - can be updated from props
   const product = {
     _id: '1',
@@ -49,7 +50,8 @@ export default function ProductDetailsUI() {
     certifications: ['Organic Certified', 'Food Safety']
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (_id) => {
+    navigate(`/add-to-card/${_id}`)
     setShowNotification(true);
     setTimeout(() => setShowNotification(false), 3000);
   };
@@ -75,6 +77,9 @@ export default function ProductDetailsUI() {
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
               <ArrowLeft size={24} className="text-gray-700" />
             </button>
+            <div className="w-10 h-10 bg-linear-to-r from-green-600 to-emerald-600 rounded-xl flex items-center justify-center shadow-md shrink-0">
+            <Leaf size={26} className="text-white" />
+            </div>
             <h1 className="text-lg sm:text-xl font-semibold text-gray-900 hidden sm:block">Product Details</h1>
           </div>
           <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">

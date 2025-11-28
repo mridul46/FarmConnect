@@ -145,7 +145,9 @@ export default function Products() {
 
   ];
 
-  const handleAddToCart = (product) => console.log("Add to cart", product);
+  const handleAddToCart = (id) => {
+    navigate(`/add-to-card/${id}`)
+  }
   const handleViewDetails = (id) =>{
     navigate(`/view-details/${id}`)
   }

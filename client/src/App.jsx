@@ -20,6 +20,7 @@ import FarmerRegister from "./pages/FarmerRegister";
 import Unauthorized from "./pages/Unauthorized";
 import ProtectedRoute from "./components/protected/ProtectedRoute";
 import ProductDetailsUI from "./pages/ProductDetails";
+import AddToCard from "./pages/AddToCard"
 
 export default function App() {
   const productsRef = useRef(null);
@@ -72,6 +73,7 @@ export default function App() {
       <Route element={<ProtectedRoute allowedRoles={["consumer"]} />}>
         <Route path="/consumer/dashboard" element={<ConsumerDashboard />} />
         <Route path="/view-details/:id" element={<ProductDetailsUI />} />
+        <Route path="/add-to-card/:id"  element={<AddToCard/>} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/chatroom" element={<ChatPage />} />
       </Route>
