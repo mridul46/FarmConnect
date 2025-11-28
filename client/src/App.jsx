@@ -19,6 +19,7 @@ import FarmerRegister from "./pages/FarmerRegister";
 
 import Unauthorized from "./pages/Unauthorized";
 import ProtectedRoute from "./components/protected/ProtectedRoute";
+import ProductDetailsUI from "./pages/ProductDetails";
 
 export default function App() {
   const productsRef = useRef(null);
@@ -70,6 +71,7 @@ export default function App() {
       {/* Consumer Routes */}
       <Route element={<ProtectedRoute allowedRoles={["consumer"]} />}>
         <Route path="/consumer/dashboard" element={<ConsumerDashboard />} />
+        <Route path="/view-details/:id" element={<ProductDetailsUI />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/chatroom" element={<ChatPage />} />
       </Route>

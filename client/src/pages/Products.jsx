@@ -146,7 +146,9 @@ export default function Products() {
   ];
 
   const handleAddToCart = (product) => console.log("Add to cart", product);
-  const handleViewDetails = (id) => console.log("View", id);
+  const handleViewDetails = (id) =>{
+    navigate(`/view-details/${id}`)
+  }
   const handleChat = (farmer) => console.log("Chat with:", farmer);
 
   return (
@@ -190,7 +192,7 @@ export default function Products() {
             hover:shadow-lg hover:shadow-green-600/30 transition-all"
           >
             <ShoppingCart size={18} />
-            View Cart (0)
+            Cart (0)
           </button>
       
             </div>
