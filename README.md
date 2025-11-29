@@ -257,7 +257,7 @@ VITE_SOCKET_URL=http://localhost:5000
 1. Start the backend server
    ```bash
    cd server
-   npm start
+   npm run server
    ```
 
 2. Start the frontend development server
