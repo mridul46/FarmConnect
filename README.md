@@ -281,17 +281,7 @@ We welcome contributions to FarmConnect! Please follow these guidelines:
 
 ---
 
-## 📄 License
 
-This project is licensed under the MIT License – see the LICENSE file for details.
-
----
-
-## 💬 Support
-
-For questions or issues, please open an issue on GitHub or contact the development team.
-
----
 
 ## 🌟 Vision
 
