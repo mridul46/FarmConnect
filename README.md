@@ -222,13 +222,13 @@ pending → paid → preparing → out_for_delivery → delivered → cancelled
 
 2. Install backend dependencies
    ```bash
-   cd backend
+   cd server
    npm install
    ```
 
 3. Install frontend dependencies
    ```bash
-   cd frontend
+   cd client
    npm install
    ```
 
