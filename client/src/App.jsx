@@ -73,7 +73,7 @@ export default function App() {
       <Route element={<ProtectedRoute allowedRoles={["consumer"]} />}>
         <Route path="/consumer/dashboard" element={<ConsumerDashboard />} />
         <Route path="/view-details/:id" element={<ProductDetailsUI />} />
-        <Route path="/add-to-card/:id"  element={<AddToCard/>} />
+        <Route path="/add-to-cart"  element={<AddToCard/>} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/chatroom" element={<ChatPage />} />
       </Route>

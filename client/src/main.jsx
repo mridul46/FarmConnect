@@ -7,6 +7,7 @@ import "./index.css";
 import { AuthProvider } from "./Context/authContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "react-hot-toast";
+import { ProductProvider } from "./Context/productsContext.jsx";
 
 // 🔥 Add this - Force COOP policy in JavaScript
 if (document.currentScript?.parentElement === document.head) {
@@ -20,8 +21,10 @@ createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <AuthProvider>
-        <App />
-        <Toaster/>
+        <ProductProvider>
+          <App />
+         <Toaster/>
+        </ProductProvider>
       </AuthProvider>
     </GoogleOAuthProvider>
   </BrowserRouter>

@@ -1,216 +1,85 @@
+
 import React, { useEffect, useMemo, useState } from "react";
 import ProductCard from "../components/Products/ProductCard/";
 import { Leaf, ShoppingCart, Search } from "lucide-react";
 import Footer from "../components/layout/Footer";
 import { useNavigate } from "react-router-dom";
+import { useProductContext } from "../Context/productsContext";
 
 export default function Products() {
   const navigate = useNavigate();
-
-  const sampleProducts = [
-    {
-      _id: "1",
-      title: "Organic Farm Fresh Tomatoes",
-      category: "Vegetables",
-      pricePerUnit: 45,
-      unit: "kg",
-      stockQuantity: 150,
-      images: [
-        "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400",
-      ],
-      farmerName: "Rajesh Kumar",
-      distance: 2.5,
-      organic: true,
-    },
-    {
-      _id: "2",
-      title: "Sweet Alphonso Mangoes",
-      category: "Fruits",
-      pricePerUnit: 120,
-      unit: "kg",
-      stockQuantity: 8,
-      images: [
-        "https://images.unsplash.com/photo-1553279768-865429fa0078?w=400",
-      ],
-      farmerName: "Priya Sharma",
-      distance: 5.2,
-      organic: false,
-    },
-    {
-      _id: "3",
-      title: "Fresh Green Spinach",
-      category: "Leafy Greens",
-      pricePerUnit: 30,
-      unit: "bunch",
-      stockQuantity: 0,
-      images: [
-        "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400",
-      ],
-      farmerName: "Amit Patel",
-      distance: 1.8,
-      organic: true,
-    },
-    {
-      _id: "4",
-      title: "Crisp Lettuce",
-      category: "Leafy Greens",
-      pricePerUnit: 25,
-      unit: "bunch",
-      stockQuantity: 45,
-      images: [
-        "https://images.unsplash.com/photo-1506801310323-534be5e7c1f5?w=400",
-      ],
-      farmerName: "Neha Verma",
-      distance: 4.2,
-      organic: true,
-    },
-    {
-      _id: "5",
-      title: "Golden Potatoes",
-      category: "Vegetables",
-      pricePerUnit: 40,
-      unit: "kg",
-      stockQuantity: 120,
-      images: [
-        "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400",
-      ],
-      farmerName: "Ramesh Yadav",
-      distance: 3.9,
-      organic: false,
-    },
-    {
-      _id: "6",
-      title: "Juicy Watermelons",
-      category: "Fruits",
-      pricePerUnit: 28,
-      unit: "piece",
-      stockQuantity: 32,
-      images: [
-        "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=400",
-      ],
-      farmerName: "Sunita Mishra",
-      distance: 6.3,
-      organic: true,
-    },
-    {
-      _id: "7",
-      title: "Premium Brown Eggs",
-      category: "Dairy & Poultry",
-      pricePerUnit: 6,
-      unit: "piece",
-      stockQuantity: 200,
-      images: [
-        "https://images.unsplash.com/photo-1560185127-6ed189bf02df?w=400",
-      ],
-      farmerName: "Harpreet Singh",
-      distance: 2.0,
-      organic: false,
-    },
-    {
-      _id: "8",
-      title: "Farm Fresh Cucumbers",
-      category: "Vegetables",
-      pricePerUnit: 35,
-      unit: "kg",
-      stockQuantity: 60,
-      images: [
-        "https://images.unsplash.com/photo-1592924356763-7fbd308014c5?w=400",
-      ],
-      farmerName: "Kavita Joshi",
-      distance: 1.4,
-      organic: true,
-    },
-    {
-      _id: "9",
-      title: "Sweet Pineapples",
-      category: "Fruits",
-      pricePerUnit: 55,
-      unit: "piece",
-      stockQuantity: 25,
-      images: [
-        "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?w=400",
-      ],
-      farmerName: "Vikram Rao",
-      distance: 7.1,
-      organic: false,
-    },
-  ];
-
-  const categories = [
-    "All",
-    "Vegetables",
-    "Fruits",
-    "Grains",
-    "Dairy & Poultry",
-    "Leafy Greens",
-    "Herbs",
-    "Other",
-  ];
+  const {
+    allProducts,
+    productsLoading,
+    productsError,
+    fetchProducts,
+    addToCart,
+    cartCount
+  } = useProductContext();
 
   // UI state
-  const [products] = useState(sampleProducts);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [showOrganicOnly, setShowOrganicOnly] = useState(false);
   const [showInStockOnly, setShowInStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState("");
-  const [cartCount, setCartCount] = useState(0);
 
-const handleAddToCart = (id) => {
-  setCartCount((prev) => prev + 1);
-  navigate(`/add-to-card/${id}`);
-};
+  // fetch products on mount (context already does an initial fetch, but safe to call)
+  useEffect(() => {
+    fetchProducts().catch(() => {});
+  }, [fetchProducts]);
 
-// Load initial cart count
-useEffect(() => {
-  const saved = localStorage.getItem("cartCount");
-  if (saved) setCartCount(Number(saved));
-}, []);
+  // dynamic categories from backend
+  const categories = useMemo(() => {
+    const set = new Set(allProducts.map((p) => p.category).filter(Boolean));
+    return ["All", ...Array.from(set)];
+  }, [allProducts]);
 
-// Save cart count to local storage
-useEffect(() => {
-  localStorage.setItem("cartCount", cartCount);
-}, [cartCount]);
+  const handleAddToCart = async (product) => {
+    try {
+      await addToCart(product._id, 1);
+      // optional: you can call a notification here if you have one
+      navigate("/add-to-cart");
+    } catch (err) {
+      console.error("Failed to add to cart", err);
+      // fallback navigation if needed
+      navigate("/add-to-cart");
+    }
+  };
 
-    const handleViewDetails = (id) => {
+  const handleViewDetails = (id) => {
     navigate(`/view-details/${id}`);
   };
   const handleChat = (farmer) => console.log("Chat with:", farmer);
 
-  // Derived filtered list
+  // Derived filtered list (client-side)
   const filteredProducts = useMemo(() => {
-    let result = [...products];
+    let result = [...allProducts];
 
-    // Category
     if (selectedCategory && selectedCategory !== "All") {
       result = result.filter((p) => p.category === selectedCategory);
     }
 
-    // Search
     if (searchTerm.trim() !== "") {
       const q = searchTerm.toLowerCase();
       result = result.filter(
         (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.farmerName.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q)
+          (p.title || "").toLowerCase().includes(q) ||
+          (p.farmerName || "").toLowerCase().includes(q) ||
+          (p.category || "").toLowerCase().includes(q)
       );
     }
 
-    // Organic
     if (showOrganicOnly) result = result.filter((p) => p.organic === true);
+    if (showInStockOnly) result = result.filter((p) => (p.stockQuantity || 0) > 0);
 
-    // In stock
-    if (showInStockOnly) result = result.filter((p) => p.stockQuantity > 0);
-
-    // Sorting
-    if (sortBy === "price-asc") result.sort((a, b) => a.pricePerUnit - b.pricePerUnit);
-    if (sortBy === "price-desc") result.sort((a, b) => b.pricePerUnit - a.pricePerUnit);
-    if (sortBy === "distance") result.sort((a, b) => a.distance - b.distance);
-    if (sortBy === "stock") result.sort((a, b) => b.stockQuantity - a.stockQuantity);
+    if (sortBy === "price-asc") result.sort((a, b) => (a.pricePerUnit || 0) - (b.pricePerUnit || 0));
+    if (sortBy === "price-desc") result.sort((a, b) => (b.pricePerUnit || 0) - (a.pricePerUnit || 0));
+    if (sortBy === "distance") result.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+    if (sortBy === "stock") result.sort((a, b) => (b.stockQuantity || 0) - (a.stockQuantity || 0));
 
     return result;
-  }, [products, selectedCategory, searchTerm, showOrganicOnly, showInStockOnly, sortBy]);
+  }, [allProducts, selectedCategory, searchTerm, showOrganicOnly, showInStockOnly, sortBy]);
 
   return (
     <div className="min-h-screen bg-linear-to-r from-green-50 via-white to-emerald-50 transition-colors">
@@ -229,13 +98,11 @@ useEffect(() => {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Search */}
-             
               <div className="relative hidden sm:flex items-center w-96">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                   <Search size={16} />
                 </span>
-              
+
                 <input
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -247,7 +114,7 @@ useEffect(() => {
 
               {/* Cart */}
               <button
-                onClick={() => navigate('/checkout')}
+                onClick={() => navigate("/add-to-cart")}
                 className="relative px-3 py-2 rounded-xl bg-emerald-600 text-white flex items-center gap-2 hover:scale-105 transition-transform shadow-md"
               >
                 <ShoppingCart size={18} />
@@ -335,7 +202,19 @@ useEffect(() => {
 
       {/* Product list + empty state */}
       <main className="max-w-7xl mx-auto px-6 pb-20">
-        {filteredProducts.length === 0 ? (
+        {productsLoading ? (
+          <div className="p-12 bg-white rounded-xl shadow text-center">
+            <h3 className="text-xl font-semibold">Loading products…</h3>
+          </div>
+        ) : productsError ? (
+          <div className="p-12 bg-white rounded-xl shadow text-center">
+            <h3 className="text-xl font-semibold">Failed to load products</h3>
+            <p className="text-gray-600 mt-2">{productsError}</p>
+            <div className="mt-4">
+              <button onClick={() => fetchProducts().catch(()=>{})} className="px-4 py-2 rounded-xl border">Retry</button>
+            </div>
+          </div>
+        ) : filteredProducts.length === 0 ? (
           <div className="p-12 bg-white rounded-xl shadow text-center">
             <h3 className="text-xl font-semibold">No products match your filters.</h3>
             <p className="text-gray-600 mt-2">Try clearing filters or search terms.</p>
@@ -360,9 +239,9 @@ useEffect(() => {
               <ProductCard
                 key={product._id}
                 product={product}
-                onAddToCart={handleAddToCart}
-                onViewDetails={handleViewDetails}
-                onChat={handleChat}
+                onAddToCart={() => handleAddToCart(product)}
+                onViewDetails={() => handleViewDetails(product._id)}
+                onChat={() => handleChat(product.farmerName)}
               />
             ))}
           </div>
@@ -371,7 +250,7 @@ useEffect(() => {
 
       {/* Floating quick cart (mobile) */}
       <button
-        onClick={() => navigate('/checkout')}
+        onClick={() => navigate("/add-to-cart")}
         className="fixed bottom-6 right-6 md:hidden flex items-center gap-3 bg-emerald-600 text-white px-4 py-3 rounded-2xl shadow-lg"
       >
         <ShoppingCart />
