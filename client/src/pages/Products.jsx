@@ -1,4 +1,4 @@
-
+// src/pages/Products.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import ProductCard from "../components/Products/ProductCard/";
 import { Leaf, ShoppingCart, Search } from "lucide-react";
@@ -9,7 +9,7 @@ import { useProductContext } from "../Context/productsContext";
 export default function Products() {
   const navigate = useNavigate();
   const {
-    allProducts,
+    allProducts = [],
     productsLoading,
     productsError,
     fetchProducts,
@@ -29,54 +29,81 @@ export default function Products() {
     fetchProducts().catch(() => {});
   }, [fetchProducts]);
 
-  // dynamic categories from backend
+  // dynamic categories from backend (safe)
   const categories = useMemo(() => {
-    const set = new Set(allProducts.map((p) => p.category).filter(Boolean));
+    const set = new Set((allProducts || []).map((p) => p?.category).filter(Boolean));
     return ["All", ...Array.from(set)];
   }, [allProducts]);
 
   const handleAddToCart = async (product) => {
     try {
-      await addToCart(product._id, 1);
-      // optional: you can call a notification here if you have one
+      await addToCart(product._id ?? product.id ?? product, 1);
       navigate("/add-to-cart");
     } catch (err) {
       console.error("Failed to add to cart", err);
-      // fallback navigation if needed
       navigate("/add-to-cart");
     }
   };
 
   const handleViewDetails = (id) => {
+    if (!id) return;
     navigate(`/view-details/${id}`);
   };
   const handleChat = (farmer) => console.log("Chat with:", farmer);
 
-  // Derived filtered list (client-side)
+  // Derived filtered list (client-side) with robust distance sorting
   const filteredProducts = useMemo(() => {
-    let result = [...allProducts];
+    let result = Array.isArray(allProducts) ? [...allProducts] : [];
 
     if (selectedCategory && selectedCategory !== "All") {
-      result = result.filter((p) => p.category === selectedCategory);
+      result = result.filter((p) => p?.category === selectedCategory);
     }
 
     if (searchTerm.trim() !== "") {
       const q = searchTerm.toLowerCase();
       result = result.filter(
         (p) =>
-          (p.title || "").toLowerCase().includes(q) ||
-          (p.farmerName || "").toLowerCase().includes(q) ||
-          (p.category || "").toLowerCase().includes(q)
+          ((p.title || p.name || "") + " " + (p.farmerName || p.farmer?.name || "") + " " + (p.category || ""))
+            .toLowerCase()
+            .includes(q)
       );
     }
 
-    if (showOrganicOnly) result = result.filter((p) => p.organic === true);
-    if (showInStockOnly) result = result.filter((p) => (p.stockQuantity || 0) > 0);
+    if (showOrganicOnly) result = result.filter((p) => p?.organic === true);
+    if (showInStockOnly) result = result.filter((p) => (p?.stockQuantity ?? p?.stock ?? 0) > 0);
 
-    if (sortBy === "price-asc") result.sort((a, b) => (a.pricePerUnit || 0) - (b.pricePerUnit || 0));
-    if (sortBy === "price-desc") result.sort((a, b) => (b.pricePerUnit || 0) - (a.pricePerUnit || 0));
-    if (sortBy === "distance") result.sort((a, b) => (a.distance || 0) - (b.distance || 0));
-    if (sortBy === "stock") result.sort((a, b) => (b.stockQuantity || 0) - (a.stockQuantity || 0));
+    // sorting helpers
+    // const safeNum = (v) => {
+    //   if (v == null) return Infinity; // missing -> push to end
+    //   const n = Number(v);
+    //   return Number.isNaN(n) ? Infinity : n;
+    // };
+    const safeNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : Infinity);
+
+    if (sortBy === "price-asc") {
+      result.sort((a, b) => (safeNum(a?.pricePerUnit) - safeNum(b?.pricePerUnit)));
+    }
+    if (sortBy === "price-desc") {
+      result.sort((a, b) => (safeNum(b?.pricePerUnit) - safeNum(a?.pricePerUnit)));
+    }
+
+  
+
+if (sortBy === "distance") {
+  result.sort((a, b) => {
+    const da = safeNum(a?.distance);
+    const db = safeNum(b?.distance);
+    if (da === db) {
+      // tie-break: cheaper price first
+      return safeNum(a?.pricePerUnit ?? a?.price ?? 0) - safeNum(b?.pricePerUnit ?? b?.price ?? 0);
+    }
+    return da - db;
+  });
+}
+
+    if (sortBy === "stock") {
+      result.sort((a, b) => (safeNum(b?.stockQuantity ?? b?.stock) - safeNum(a?.stockQuantity ?? a?.stock)));
+    }
 
     return result;
   }, [allProducts, selectedCategory, searchTerm, showOrganicOnly, showInStockOnly, sortBy]);
@@ -141,7 +168,7 @@ export default function Products() {
         </div>
       </header>
 
-      {/* Controls row (compact) */}
+      {/* Controls row */}
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3 w-full md:w-auto">
@@ -237,10 +264,10 @@ export default function Products() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product) => (
               <ProductCard
-                key={product._id}
+                key={product._id ?? product.id}
                 product={product}
                 onAddToCart={() => handleAddToCart(product)}
-                onViewDetails={() => handleViewDetails(product._id)}
+                onViewDetails={() => handleViewDetails(product._id ?? product.id)}
                 onChat={() => handleChat(product.farmerName)}
               />
             ))}

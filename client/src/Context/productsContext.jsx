@@ -9,7 +9,6 @@ import React, {
 } from "react";
 import axios from "axios";
 import { useAuth } from "./authContext";
-import { useNavigate } from "react-router-dom";
 
 const ProductContext = createContext(null);
 
@@ -18,24 +17,15 @@ const CART_KEY = "farmconnect_cart_v1";
 const ADDED_IDS_KEY = "farmconnect_addedIds_v1";
 
 // axios instance with base URL from env (same pattern as your auth context)
-const RAW_BACKEND = import.meta.env.VITE_BACKEND_URL || "";
-const BACKEND_URL = (RAW_BACKEND.replace(/\/+$/, "") || "").concat("/api/v1");
-
-if (!RAW_BACKEND) {
-  console.warn("VITE_BACKEND_URL not set — requests may fail or go to wrong host");
-}
-
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL + "/api/v1";
 const api = axios.create({
   baseURL: BACKEND_URL,
   withCredentials: true // keep cookies behavior same as AuthContext
 });
 
 export const ProductProvider = ({ children }) => {
-  const navigate = useNavigate();
-
   // get token/user from AuthContext (do NOT read localStorage directly)
-  // also get logout so we can clear session on 401
-  const { token, user, logout } = useAuth();
+  const { token } = useAuth();
 
   // attach token to axios instance whenever it changes
   useEffect(() => {
@@ -45,38 +35,6 @@ export const ProductProvider = ({ children }) => {
       delete api.defaults.headers.common.Authorization;
     }
   }, [token]);
-
-  // centralized response interceptor to handle 401s across all requests
-  useEffect(() => {
-    const id = api.interceptors.response.use(
-      (res) => res,
-      (err) => {
-        const status = err?.response?.status;
-        if (status === 401) {
-          try {
-            // try to log the user out via auth context
-            logout?.();
-          } catch (e) {
-            // fallback: clear local token keys if logout isn't available
-            try {
-              localStorage.removeItem("auth_token");
-            } catch {}
-          }
-          // navigate to login to force re-authentication
-          try {
-            navigate("/login");
-          } catch (e) {
-            // ignore navigation errors
-          }
-        }
-        return Promise.reject(err);
-      }
-    );
-
-    return () => {
-      api.interceptors.response.eject(id);
-    };
-  }, [logout, navigate]);
 
   // PRODUCTS
   const [allProducts, setAllProducts] = useState([]);
@@ -127,22 +85,6 @@ export const ProductProvider = ({ children }) => {
   }, [addedProductIds]);
 
   // -------------------------
-  // Notifications (define early so other helpers can use)
-  // -------------------------
-  const addNotification = useCallback((message, type = "success", duration = 3000) => {
-    const id = Date.now() + Math.random();
-    setNotifications((prev) => [...prev, { id, message, type }]);
-    if (duration > 0) {
-      setTimeout(() => setNotifications((prev) => prev.filter((n) => n.id !== id)), duration);
-    }
-    return id;
-  }, []);
-
-  const removeNotification = useCallback((id) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  }, []);
-
-  // -------------------------
   // Products API
   // -------------------------
   const fetchProducts = useCallback(
@@ -159,6 +101,8 @@ export const ProductProvider = ({ children }) => {
 
         // NORMALIZE each product to ensure rating is a primitive for UI
         data = (data || []).map((p) => {
+          // possible shapes:
+          // p.rating === number OR p.rating === { average, count } OR p.rating === { avg, total }
           let ratingAverage = null;
           let ratingCount = null;
 
@@ -170,6 +114,7 @@ export const ProductProvider = ({ children }) => {
               ratingAverage = p.rating.average ?? p.rating.avg ?? p.rating.mean ?? null;
               ratingCount = p.rating.count ?? p.rating.total ?? p.reviews ?? null;
             } else {
+              // fallback to existing fields
               ratingAverage = p.displayRating ?? p.rating ?? null;
               ratingCount = p.reviews ?? p.ratingCount ?? null;
             }
@@ -193,45 +138,6 @@ export const ProductProvider = ({ children }) => {
       }
     },
     []
-  );
-
-  // fetch only current farmer's products (server-side preferred)
-  const fetchMyProducts = useCallback(
-    async (queryString = "") => {
-      // if no logged-in farmer, fallback to fetchProducts
-      if (!user || !user._id) {
-        return fetchProducts(queryString);
-      }
-
-      // Try server-side route first
-      try {
-        const q = queryString ? `?${queryString}` : "";
-        const res = await api.get(`/products/mine${q}`);
-        const data = Array.isArray(res.data?.data) ? res.data.data : res.data;
-        setAllProducts(data);
-        return data;
-      } catch (err) {
-        // If unauthorized, bubble up so interceptor/logout handles it
-        if (err?.response?.status === 401) {
-          console.warn("fetchMyProducts: unauthorized (401) — logging out");
-          logout?.();
-          navigate("/login");
-          throw err;
-        }
-
-        // server route failed — fallback to client-side filtering
-        console.warn("fetchMyProducts: /products/mine failed, falling back to client-side filter", err?.message || err);
-        const data = await fetchProducts(queryString);
-        const uid = String(user._id);
-        const mine = (data || []).filter((p) => {
-          const fid = p?.farmerId?._id ?? p?.farmerId ?? p?.farmer?._id ?? p?.farmer;
-          return fid ? String(fid) === uid : false;
-        });
-        setAllProducts(mine);
-        return mine;
-      }
-    },
-    [user, fetchProducts, logout, navigate]
   );
 
   const fetchProductById = useCallback(async (id) => {
@@ -283,20 +189,10 @@ export const ProductProvider = ({ children }) => {
     }
   }, []);
 
-  // initial load: if farmer, load only their products; otherwise load public products
+  // initial load
   useEffect(() => {
-    (async () => {
-      try {
-        if (user && user.role === "farmer") {
-          // ensure token exists before calling protected farmer endpoints
-          if (!token) return;
-          await fetchMyProducts().catch(() => {});
-        } else {
-          await fetchProducts().catch(() => {});
-        }
-      } catch (_) {}
-    })();
-  }, [user, token, fetchMyProducts, fetchProducts]);
+    fetchProducts().catch(() => {});
+  }, [fetchProducts]);
 
   // -------------------------
   // Cart helpers
@@ -420,65 +316,8 @@ export const ProductProvider = ({ children }) => {
   }, []);
 
   // -------------------------
-  // New: Product management helpers (create, edit, delete, update stock)
+  // New: Product management helpers (delete, update stock)
   // -------------------------
-
-  // Helper to build FormData for product create/update (supports optional file)
-  const buildProductFormData = (productData = {}, imageFile) => {
-    const fd = new FormData();
-    for (const [k, v] of Object.entries(productData)) {
-      if (v === undefined || v === null) continue;
-      // arrays (tags) -> comma string
-      if (Array.isArray(v)) fd.append(k, v.join(","));
-      else if (typeof v === "object") fd.append(k, JSON.stringify(v));
-      else fd.append(k, String(v));
-    }
-    if (imageFile) fd.append("file", imageFile); // backend expects req.file named "file"
-    return fd;
-  };
-
-  // Create product (farmer). Accepts productData object + optional image File.
-  const createProductByFarmer = useCallback(async (productData = {}, imageFile = null, options = { navigateTo: "/farmer/products", notify: true }) => {
-    try {
-      const fd = buildProductFormData(productData, imageFile);
-      const res = await api.post(`/products`, fd, { headers: { "Content-Type": "multipart/form-data" } });
-      const created = res.data?.data || res.data;
-
-      // optimistic: prepend to allProducts
-      setAllProducts((prev) => [created, ...(prev || [])]);
-
-      if (options.notify) addNotification("Product created", "success");
-      if (options.navigateTo) navigate(options.navigateTo);
-
-      return created;
-    } catch (err) {
-      console.error("createProductByFarmer failed:", err?.response?.data || err.message);
-      addNotification(err?.response?.data?.message || err.message || "Failed to create product", "error");
-      throw err;
-    }
-  }, [navigate, addNotification]);
-
-  // Edit product: supports updating fields and optionally replacing image
-  const editProductByFarmer = useCallback(async (productId, productData = {}, imageFile = null, options = { navigateTo: "/farmer/products", notify: true }) => {
-    if (!productId) throw new Error("productId required");
-    try {
-      const fd = buildProductFormData(productData, imageFile);
-      const res = await api.patch(`/products/${encodeURIComponent(productId)}`, fd, { headers: { "Content-Type": "multipart/form-data" } });
-      const updated = res.data?.data || res.data;
-
-      // reconcile into allProducts
-      setAllProducts((prev) => (prev || []).map((p) => (String(p._id) === String(productId) || String(p.id) === String(productId) ? { ...p, ...updated } : p)));
-
-      if (options.notify) addNotification("Product updated", "success");
-      if (options.navigateTo) navigate(options.navigateTo);
-
-      return updated;
-    } catch (err) {
-      console.error("editProductByFarmer failed:", err?.response?.data || err.message);
-      addNotification(err?.response?.data?.message || err.message || "Failed to update product", "error");
-      throw err;
-    }
-  }, [navigate, addNotification]);
 
   // Optimistic stock update: patch product and update local allProducts
   const updateProductStock = useCallback(async (productId, newStock) => {
@@ -486,12 +325,11 @@ export const ProductProvider = ({ children }) => {
     // optimistic update
     const prevSnapshot = allProducts;
     setAllProducts((prev) =>
-      prev.map((p) => (String(p._id) === String(productId) || String(p.id) === String(productId) ? { ...p, stock: newStock, stockQuantity: newStock } : p))
+      prev.map((p) => (String(p._id) === String(productId) || String(p.id) === String(productId) ? { ...p, stock: newStock } : p))
     );
 
     try {
-      // send both fields for backward compatibility
-      const res = await api.patch(`/products/${encodeURIComponent(productId)}`, { stock: newStock, stockQuantity: newStock });
+      const res = await api.patch(`/products/${encodeURIComponent(productId)}`, { stock: newStock });
       const updated = res.data?.data || res.data;
       // reconcile using returned product if available
       if (updated) {
@@ -499,7 +337,6 @@ export const ProductProvider = ({ children }) => {
           prev.map((p) => (String(p._id) === String(productId) || String(p.id) === String(productId) ? { ...p, ...updated } : p))
         );
       }
-      addNotification("Stock updated", "success");
       return updated;
     } catch (err) {
       // rollback: restore snapshot or fetch fresh product
@@ -517,13 +354,12 @@ export const ProductProvider = ({ children }) => {
       } catch (e) {
         console.warn("rollback failed:", e);
       }
-      addNotification(err?.response?.data?.message || err.message || "Failed to update stock", "error");
       throw err;
     }
-  }, [allProducts, fetchProductById, fetchProducts, addNotification]);
+  }, [allProducts, fetchProductById, fetchProducts]);
 
   // Delete product (optimistic remove). Caller should refresh if they want full certainty.
-  const deleteProduct = useCallback(async (productId, options = { notify: true, navigateTo: null }) => {
+  const deleteProduct = useCallback(async (productId) => {
     if (!productId) throw new Error("productId required");
     // keep a snapshot to rollback if needed
     const snapshot = allProducts;
@@ -531,17 +367,31 @@ export const ProductProvider = ({ children }) => {
 
     try {
       const res = await api.delete(`/products/${encodeURIComponent(productId)}`);
-      if (options.notify) addNotification("Product deleted", "success");
-      if (options.navigateTo) navigate(options.navigateTo);
+      // server ack - return deleted product or message
       return res.data?.data || res.data;
     } catch (err) {
       console.error("deleteProduct failed:", err?.response?.data || err.message);
       // rollback
       if (snapshot) setAllProducts(snapshot);
-      addNotification(err?.response?.data?.message || err.message || "Failed to delete product", "error");
       throw err;
     }
-  }, [allProducts, navigate, addNotification]);
+  }, [allProducts]);
+
+  // -------------------------
+  // Notifications
+  // -------------------------
+  const addNotification = useCallback((message, type = "success", duration = 3000) => {
+    const id = Date.now() + Math.random();
+    setNotifications((prev) => [...prev, { id, message, type }]);
+    if (duration > 0) {
+      setTimeout(() => setNotifications((prev) => prev.filter((n) => n.id !== id)), duration);
+    }
+    return id;
+  }, []);
+
+  const removeNotification = useCallback((id) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  }, []);
 
   // -------------------------
   // Derived values
@@ -567,7 +417,6 @@ export const ProductProvider = ({ children }) => {
     productsLoading,
     productsError,
     fetchProducts,
-    fetchMyProducts,
     fetchProductById,
     fetchNearbyProducts,
     refreshProducts,
@@ -600,14 +449,8 @@ export const ProductProvider = ({ children }) => {
     getPlatformOrderStats,
 
     // product management (new)
-    createProductByFarmer,
-    editProductByFarmer,
     updateProductStock,
     deleteProduct,
-
-    // aliases for components expecting these names:
-    onDelete: deleteProduct,
-    onUpdateStock: updateProductStock,
 
     // notifications
     notifications,
