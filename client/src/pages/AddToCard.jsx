@@ -96,19 +96,31 @@ export default function CartPage() {
               <div className="space-y-4">
                 {cartItems.map((cartItem) => {
                   // context stores items as { _id, qty, product }
-                  const id = cartItem._id;
-                  const qty = cartItem.qty ?? cartItem.quantity ?? 1;
-                  const product = cartItem.product || cartItem; // fallback to older shape
-                  const title = product?.title ?? "Product";
-                  const pricePerUnit = product?.pricePerUnit ?? product?.price ?? 0;
-                  const unit = product?.unit ?? "unit";
-                  const images = product?.images ?? product?.image ? [product.image] : [];
-                  const farmerName = product?.farmerName ?? product?.farmer?.name ?? "";
-                  const distance = product?.distance ?? product?.farmer?.distance ?? "—";
-                  const organic = product?.organic ?? false;
-                  const stockQuantity = product?.stockQuantity ?? Infinity;
-
-                  return (
+                    const id = cartItem._id ?? cartItem.id;
+                      const qty = cartItem.qty ?? cartItem.quantity ?? 1;
+                      const product = cartItem.product || cartItem; // fallback to older shape
+                      
+                      const title = product?.title ?? product?.name ?? "Product";
+                      const pricePerUnit = product?.pricePerUnit ?? product?.price ?? 0;
+                      const unit = product?.unit ?? "unit";
+                      
+                      // images: prefer images array; otherwise if single image exists wrap it in an array; else empty
+                      const images = Array.isArray(product?.images) && product.images.length
+                        ? product.images
+                        : product?.image
+                          ? [product.image]
+                          : [];
+                      
+                      // farmer name present on farmerId in your response
+                      const farmerName = product?.farmerName ?? product?.farmer?.name ?? product?.farmerId?.name ?? "";
+                      const distance = product?.distance ?? product?.farmer?.distance ?? "—";
+                      const organic = Boolean(product?.organic ?? false);
+                      
+                      // prefer explicit stockQuantity, then stock, otherwise Infinity (unknown)
+                      const stockQuantity = product?.stockQuantity ?? product?.stock ?? Infinity;
+  
+  
+                    return (
                     <div
                       key={id}
                       className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200 hover:shadow-lg transition-shadow"

@@ -1,5 +1,23 @@
 import mongoose from "mongoose";
 
+const nutrientsSchema = new mongoose.Schema({
+  calories: { type: Number, min: 0, default: undefined },
+  protein: { type: Number, min: 0, default: undefined },
+  carbs: { type: Number, min: 0, default: undefined },
+  fat: { type: Number, min: 0, default: undefined },
+  // allow arbitrary vitamins/minerals as key-value pairs (optional)
+  vitamins: {
+    type: Map,
+    of: Number,
+    default: undefined,
+  },
+  minerals: {
+    type: Map,
+    of: Number,
+    default: undefined,
+  },
+}, { _id: false });
+
 const productSchema = new mongoose.Schema({
   farmerId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -51,13 +69,20 @@ const productSchema = new mongoose.Schema({
       message: "Invalid unit",
     },
   },
-  stockQuantity: {
+  // canonical stock field; older `stockQuantity` kept for compatibility
+  stock: {
     type: Number,
-    required: [true, "Stock quantity is required"],
+    required: false,
     min: [0, "Stock cannot be negative"],
     default: 0,
   },
-   images: { 
+  stockQuantity: {
+    type: Number,
+    required: true,
+    min: [0, "Stock cannot be negative"],
+    default: 0,
+  },
+  images: {
     type: [String],
     required: [true, "At least one image is required"],
   },
@@ -110,19 +135,38 @@ const productSchema = new mongoose.Schema({
       min: 0,
     },
   },
+
+  // ===== NEW: nutrients (subdocument) =====
+  nutrients: {
+    type: nutrientsSchema,
+    default: undefined,
+  },
+
+  // ===== NEW: farmingMethod =====
+  farmingMethod: {
+    type: String,
+    enum: {
+      values: ["organic", "conventional", "hydroponic", "permaculture", "aquaponic", "other"],
+      message: "Invalid farming method",
+    },
+    // index: true,
+    default: "conventional",
+  },
+
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true },
 });
 
-// ✅ Indexes
+// Indexes
 productSchema.index({ farmerId: 1, createdAt: -1 });
 productSchema.index({ category: 1, visible: 1 });
 productSchema.index({ location: "2dsphere" });
 productSchema.index({ title: "text", description: "text", tags: "text" });
+productSchema.index({ farmingMethod: 1 });
 
-// ✅ Virtual farmer info
+// Virtual farmer info
 productSchema.virtual("farmer", {
   ref: "User",
   localField: "farmerId",
@@ -130,22 +174,26 @@ productSchema.virtual("farmer", {
   justOne: true,
 });
 
-// ✅ Methods
+// Methods
 productSchema.methods.isInStock = function (quantity = 1) {
-  return this.stockQuantity >= quantity;
+  const stockVal = typeof this.stock === "number" ? this.stock : this.stockQuantity;
+  return stockVal >= quantity;
 };
 
 productSchema.methods.updateStock = async function (quantity, operation = "subtract") {
+  const current = typeof this.stock === "number" ? this.stock : this.stockQuantity;
   if (operation === "subtract") {
-    if (this.stockQuantity < quantity) throw new Error("Insufficient stock");
-    this.stockQuantity -= quantity;
+    if (current < quantity) throw new Error("Insufficient stock");
+    this.stock = current - quantity;
+    this.stockQuantity = this.stock;
   } else if (operation === "add") {
-    this.stockQuantity += quantity;
+    this.stock = current + quantity;
+    this.stockQuantity = this.stock;
   }
   return await this.save();
 };
 
-// ✅ Static: find nearby
+// Static: find nearby
 productSchema.statics.findNearby = function (lat, lng, radius = 10, filters = {}) {
   return this.find({
     ...filters,

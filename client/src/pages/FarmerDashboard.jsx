@@ -1,40 +1,40 @@
-import React, { useContext, useState } from 'react'
-import StatsCard from '../components/farmerDashboad/StatsCard'
-import QuickActions from '../components/farmerDashboad/QuickActions'
-import RecentActivity from '../components/farmerDashboad/RecentActivity'
-import OrdersTable from '../components/farmerDashboad/OrdersTable'
-import ProductsList from '../components/farmerDashboad/ProductsList'
-import EarningsCard from '../components/farmerDashboad/EarningsCard'
-import TopProducts from '../components/farmerDashboad/TopProducts'
-import Footer from '../components/layout/Footer'
-import { LogOut, Leaf } from 'lucide-react'
+// src/pages/FarmerDashboard.jsx
+import React, { useEffect, useMemo, useState } from "react";
+import StatsCard from "../components/farmerDashboad/StatsCard";
+import QuickActions from "../components/farmerDashboad/QuickActions";
+import RecentActivity from "../components/farmerDashboad/RecentActivity";
+import OrdersTable from "../components/farmerDashboad/OrdersTable";
+import ProductsList from "../components/farmerDashboad/ProductsList";
+import EarningsCard from "../components/farmerDashboad/EarningsCard";
+import TopProducts from "../components/farmerDashboad/TopProducts";
+import Footer from "../components/layout/Footer";
+import { LogOut, Leaf } from "lucide-react";
 import { DollarSign, Package, Clock, CheckCircle } from "lucide-react";
-import { useAuth } from '../Context/authContext'
-import { useNavigate } from 'react-router-dom'
-import toast from 'react-hot-toast'
-
+import { useAuth } from "../Context/authContext";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { useProductContext } from "../Context/productsContext";
 
 export default function FarmerDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
-  const {user,logout}=useAuth()
-  const navigate =useNavigate()
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-  const stats = [
-    { label: "Total Revenue", value: "₹45,230", change: "+12.5%", icon: DollarSign, color: "green", trend: "up" },
-    { label: "Active Products", value: "24", change: "+3 this week", icon: Package, color: "blue", trend: "up" },
-    { label: "Pending Orders", value: "8", change: "2 urgent", icon: Clock, color: "orange", trend: "neutral" },
-    { label: "Completed", value: "156", change: "+18 this month", icon: CheckCircle, color: "purple", trend: "up" },
-  ];
+  // product context
+  const {
+    allProducts,
+    productsLoading,
+    fetchProducts,
+    orders,
+    refreshOrders,
+    getFarmerOrders,
+    getOrderStats,
+    cartCount,
+  } = useProductContext();
 
-  const recentOrders = [
-    { id: "#ORD-1234", customer: "Amit Kumar", product: "Organic Tomatoes", quantity: "5 kg", amount: "₹225", status: "pending", time: "10 min ago" },
-    { id: "#ORD-1233", customer: "Priya Sharma", product: "Fresh Spinach", quantity: "3 bunches", amount: "₹90", status: "preparing", time: "1 hour ago" },
-  ];
-
-  const products = [
-    { id: 1, name: "Organic Tomatoes", image: "https://...", stock: 45, price: 45, unit: "kg", sold: 120 },
-    { id: 2, name: "Fresh Spinach", image: "https://...", stock: 8, price: 30, unit: "bunch", sold: 85 },
-  ];
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [orderStats, setOrderStats] = useState(null);
+  const [loadingDashboard, setLoadingDashboard] = useState(false);
 
   const getStatusColor = (status) => {
     const c = {
@@ -51,102 +51,191 @@ export default function FarmerDashboard() {
     if (stock < 10) return { label: "Low Stock", color: "text-orange-600" };
     return { label: "In Stock", color: "text-green-600" };
   };
-   const handleLogout = async () => {
-    await logout(); 
-    toast.success("logout successfully")
-    navigate("/login");
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully");
+      navigate("/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
+      toast.error("Logout failed");
+    }
   };
-  // derive display name & initials safely
+
+  // fetch dashboard data (products + farmer orders + stats)
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setLoadingDashboard(true);
+      try {
+        // fetch products (refresh)
+        await fetchProducts().catch((e) => {
+          console.warn("fetchProducts failed:", e);
+        });
+
+        // farmer orders for dashboard
+        const farmerOrders = await getFarmerOrders().catch((e) => {
+          console.warn("getFarmerOrders failed:", e);
+          return [];
+        });
+
+        // order stats (revenue, completed counts etc)
+        const stats = await getOrderStats().catch((e) => {
+          console.warn("getOrderStats failed:", e);
+          return null;
+        });
+
+        if (!mounted) return;
+        setRecentOrders(Array.isArray(farmerOrders) ? farmerOrders.slice(0, 8) : []);
+        setOrderStats(stats || null);
+      } catch (err) {
+        console.error("Dashboard load error:", err);
+        toast.error("Failed to load dashboard data");
+      } finally {
+        if (mounted) setLoadingDashboard(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchProducts, getFarmerOrders, getOrderStats]);
+
+  const stats = useMemo(() => [
+    {
+      label: "Total Revenue",
+      value:
+        orderStats && (orderStats.revenue != null || orderStats.totalRevenue != null)
+          ? `₹${Number(orderStats.revenue ?? orderStats.totalRevenue).toLocaleString()}`
+          : "₹0",
+      change: orderStats?.revenueChangeText ?? "+0%",
+      icon: DollarSign,
+      color: "green",
+      trend: "up",
+    },
+    {
+      label: "Active Products",
+      value: typeof allProducts?.length === "number" ? String(allProducts.length) : "0",
+      change: "+ updated",
+      icon: Package,
+      color: "blue",
+      trend: "up",
+    },
+    {
+      label: "Pending Orders",
+      value: Array.isArray(orders) ? String(orders.filter((o) => o.status === "pending").length) : String(recentOrders.filter((o) => o.status === "pending").length),
+      change: "urgent",
+      icon: Clock,
+      color: "orange",
+      trend: "neutral",
+    },
+    {
+      label: "Completed",
+      value: Array.isArray(orders) ? String(orders.filter((o) => o.status === "delivered").length) : String(recentOrders.filter((o) => o.status === "delivered").length),
+      change: "+ this month",
+      icon: CheckCircle,
+      color: "purple",
+      trend: "up",
+    },
+  ], [allProducts, orders, recentOrders, orderStats]);
+
   const userName = user?.name || "Guest";
 
   return (
     <div className="min-h-screen bg-linear-to-r from-emerald-50 via-white to-green-100">
-
       {/* HEADER */}
-      <div className="bg-white/80 backdrop-blur-md border-b p-4 sm:p-6 shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-
-          {/* Left Section */}
-          <div className="flex items-center gap-3 sm:gap-4">
+      <div className="bg-white/90 backdrop-blur-md border-b p-4 sm:p-6 shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 w-full">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-green-600 to-emerald-500 rounded-xl flex items-center justify-center shadow-md shrink-0">
               <Leaf size={24} className="text-white" />
             </div>
 
-            <div className="flex flex-col">
-              <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
-                Farmer Dashboard
-              </h1>
-              <p className="text-sm text-gray-600 hidden sm:block">
-                Welcome back,<span className='text-green-600'> { userName}</span>👋
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">Farmer Dashboard</h1>
+              <p className="text-sm text-gray-600 hidden md:block">
+                Welcome back, <span className="text-green-600">{userName}</span> 👋
               </p>
             </div>
-          </div>
 
-          {/* Logout */}
-          <button 
-          onClick={()=>handleLogout()}
-          className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm font-medium rounded-lg shadow-md transition">
-            <LogOut size={18} />
-            <span className="hidden sm:block">Logout</span>
-          </button>
+            <div className="flex gap-2 mt-3 sm:mt-0 sm:ml-4">
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm font-medium rounded-lg shadow-md transition"
+                aria-label="Logout"
+              >
+                <LogOut size={18} />
+                <span className="hidden sm:block">Logout</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="max-w-7xl mx-auto p-6">
-
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* STATS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
           {stats.map((s, i) => (
             <StatsCard stat={s} key={i} />
           ))}
         </div>
 
         {/* TABS */}
-        <div className="mt-8 bg-white/90 backdrop-blur-xl rounded-2xl border shadow-lg">
-          <div className="border-b flex overflow-x-auto">
-            {["overview", "orders", "products"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-6 py-4 font-medium transition-all 
-                  ${activeTab === tab
-                    ? "text-green-600 border-b-2 border-green-600 bg-green-50"
-                    : "text-gray-600 hover:bg-gray-50"
+        <div className="mt-6 bg-white/90 backdrop-blur-xl rounded-2xl border shadow-lg overflow-hidden">
+          <div className="border-b">
+            <nav className="flex gap-0 overflow-x-auto no-scrollbar" aria-label="Dashboard tabs">
+              {["overview", "orders", "products"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`shrink-0 px-5 py-3 md:px-6 md:py-4 font-medium text-sm sm:text-base transition ${
+                    activeTab === tab ? "text-green-600 border-b-2 border-green-600 bg-green-50" : "text-gray-600 hover:bg-gray-50"
                   }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
+            </nav>
           </div>
 
-          <div className="p-6 animate-fadeIn">
+          <div className="p-4 sm:p-6">
             {activeTab === "overview" && (
-              <div className="space-y-8">
+              <div className="space-y-6">
                 <QuickActions />
                 <RecentActivity />
               </div>
             )}
 
             {activeTab === "orders" && (
-              <OrdersTable orders={recentOrders} getStatusColor={getStatusColor} />
+              <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                <OrdersTable
+                  orders={Array.isArray(orders) && orders.length ? orders : recentOrders}
+                  getStatusColor={getStatusColor}
+                />
+              </div>
             )}
 
             {activeTab === "products" && (
-              <ProductsList products={products} getStockStatus={getStockStatus} />
+              <div>
+                <ProductsList products={allProducts || []} getStockStatus={getStockStatus} loading={productsLoading} />
+              </div>
             )}
           </div>
         </div>
 
         {/* BOTTOM CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-          <EarningsCard />
-          <TopProducts />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <EarningsCard orderStats={orderStats} loading={loadingDashboard} />
+          <TopProducts products={allProducts?.slice(0, 6) || []} loading={productsLoading} />
         </div>
-
       </div>
 
       <Footer />
     </div>
-  )
+  );
 }

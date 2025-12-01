@@ -67,6 +67,7 @@ export const registerConsumer = asyncHandler(async (req, res) => {
 
   await user.save();
 
+  
   const accessToken = user.generateAuthToken();
   const refreshToken = await user.generateRefreshToken();
   await user.save();
