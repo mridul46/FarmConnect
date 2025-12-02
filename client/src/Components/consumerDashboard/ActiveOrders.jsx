@@ -28,7 +28,7 @@ export default function ActiveOrders({ recentOrders = [] }) {
         {active.length > 0 ? (
           active.map((order) => (
             <OrderCard
-              key={order._id || order.id} // ← FIXED: Works with MongoDB
+              key={order._id || order.id} 
               order={order}
             />
           ))

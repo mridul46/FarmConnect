@@ -8,6 +8,12 @@ import {
   deleteProduct,
   getNearbyProducts,
   getMyProducts,
+  updateStock ,
+  getTopBySales,
+  getTopByRating,
+  getTopByRecent,
+  getTopByViews,
+  getTopTrending
 } from "../controllers/product.controllers.js";
 
 import { verifyJWT } from "../middleware/auth.middleware.js";
@@ -39,7 +45,7 @@ router.post(
   "/",
   verifyJWT,
   isFarmer,
-  upload.single("file"), // matches frontend FormData fd.append("file", ...)
+  upload.single("file"),
   createProduct
 );
 
@@ -60,6 +66,14 @@ router.patch(
   upload.single("file"), // optional image update
   updateProduct
 );
+router.patch(
+  "/:id/stock",
+  verifyJWT,
+  isFarmer,
+  updateStock 
+);
+
+
 
 // -----------------------------------------
 // Delete Product
@@ -74,5 +88,10 @@ router.delete(
   },
   deleteProduct
 );
+router.get("/top/sales", getTopBySales);
+router.get("/top/rating", getTopByRating);
+router.get("/top/recent", getTopByRecent);
+router.get("/top/views", getTopByViews);
+router.get("/top/trending", getTopTrending);
 
 export default router;

@@ -106,7 +106,7 @@ export default function ProductsList({
     setDrawerLoading(true);
     try {
       await createProductByFarmer(productData, imageFile, { navigateTo: null, notify: true });
-      toast.success("✨ Product created successfully!");
+      toast.success(" Product created successfully!");
       await refreshProducts();
       closeDrawer();
     } catch (err) {
@@ -124,7 +124,7 @@ export default function ProductsList({
     setDrawerLoading(true);
     try {
       await editProductByFarmer(id, productData, imageFile, { navigateTo: null, notify: true });
-      toast.success("✅ Product updated successfully!");
+      toast.success("Product updated successfully!");
       await refreshProducts();
       closeDrawer();
     } catch (err) {

@@ -15,6 +15,7 @@ export default function QuickActions() {
     refreshOrders,
     getFarmerOrders,
     getOrderStats,
+    updateProductStock
   } = useProductContext();
 
   const [pendingCount, setPendingCount] = useState(0);
@@ -43,22 +44,23 @@ export default function QuickActions() {
       };
     }
   }, [orders, getFarmerOrders]);
+const handleUpdateStock = async () => {
+  setLoadingAction(true);
+  toast.loading("Refreshing products...", { id: "qa-refresh" });
+  try {
+    await refreshProducts();
+    toast.success("Products refreshed.", { id: "qa-refresh" });
 
-  const handleUpdateStock = async () => {
-    setLoadingAction(true);
-    toast.loading("Refreshing products...", { id: "qa-refresh" });
-    try {
-      await refreshProducts();
-      toast.success("Products refreshed. Open products page to update stock.", { id: "qa-refresh" });
-      // navigate to products tab / page - change route if different in your app
-      navigate("/dashboard/products");
-    } catch (err) {
-      console.error("refreshProducts failed:", err);
-      toast.error("Failed to refresh products", { id: "qa-refresh" });
-    } finally {
-      setLoadingAction(false);
-    }
-  };
+    // navigate to the farmer dashboard and open products tab
+    navigate("/farmer/dashboard?tab=products", { replace: false });
+  } catch (err) {
+    console.error("refreshProducts failed:", err);
+    toast.error("Failed to refresh products", { id: "qa-refresh" });
+  } finally {
+    setLoadingAction(false);
+  }
+};
+
 
   const handleViewAnalytics = async () => {
     setLoadingAction(true);
@@ -91,20 +93,22 @@ export default function QuickActions() {
     }
   };
 
-  const handleProcessOrders = async () => {
-    setLoadingAction(true);
-    toast.loading("Refreshing orders...", { id: "qa-orders" });
-    try {
-      await refreshOrders().catch(() => {});
-      toast.success("Orders refreshed", { id: "qa-orders" });
-      navigate("/dashboard/orders");
-    } catch (err) {
-      console.error("refreshOrders failed:", err);
-      toast.error("Failed to refresh orders", { id: "qa-orders" });
-    } finally {
-      setLoadingAction(false);
-    }
-  };
+ const handleProcessOrders = async () => {
+  setLoadingAction(true);
+  toast.loading("Refreshing orders...", { id: "qa-orders" });
+  try {
+    await refreshOrders().catch(() => {});
+    toast.success("Orders refreshed", { id: "qa-orders" });
+
+    // navigate to the farmer dashboard and open orders tab
+    navigate("/farmer/dashboard?tab=orders", { replace: false });
+  } catch (err) {
+    console.error("refreshOrders failed:", err);
+    toast.error("Failed to refresh orders", { id: "qa-orders" });
+  } finally {
+    setLoadingAction(false);
+  }
+};
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

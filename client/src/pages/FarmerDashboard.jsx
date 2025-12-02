@@ -17,7 +17,7 @@ import { useProductContext } from "../Context/productsContext";
 
 export default function FarmerDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
-  const { user, logout } = useAuth();
+  const { user, logout ,token} = useAuth();
   const navigate = useNavigate();
 
   // product context
@@ -35,6 +35,86 @@ export default function FarmerDashboard() {
   const [recentOrders, setRecentOrders] = useState([]);
   const [orderStats, setOrderStats] = useState(null);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
+  // At top of file ensure token is imported from auth
+
+
+useEffect(() => {
+  let mounted = true;
+
+  // if no token present, skip loading private/dashboard endpoints
+  if (!token) {
+    // still fetch public products list if you want (optional)
+    (async () => {
+      setLoadingDashboard(true);
+      try {
+        await fetchProducts().catch((e) => console.warn("fetchProducts(public) failed:", e));
+      } finally {
+        if (mounted) setLoadingDashboard(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }
+
+  const load = async () => {
+    setLoadingDashboard(true);
+    try {
+      // fetch products
+      await fetchProducts().catch((e) => {
+        console.warn("fetchProducts failed:", e);
+      });
+
+      // farmer orders for dashboard — 401 will surface here
+      let farmerOrders = [];
+      try {
+        farmerOrders = await getFarmerOrders();
+      } catch (err) {
+        console.warn("getFarmerOrders failed:", err);
+        // If unauthorized -> redirect to login (or prompt)
+        if (err?.response?.status === 401) {
+          console.warn("Unauthorized — token may be missing/expired. Redirecting to login.");
+          // optionally call logout() to clear bad session
+          // await logout(); 
+          navigate("/login");
+          return;
+        }
+        farmerOrders = [];
+      }
+
+      // order stats (revenue, completed counts etc)
+      let stats = null;
+      try {
+        stats = await getOrderStats();
+      } catch (err) {
+        console.warn("getOrderStats failed:", err);
+        if (err?.response?.status === 401) {
+          console.warn("Unauthorized when fetching order stats. Redirecting to login.");
+          navigate("/login");
+          return;
+        }
+        stats = null;
+      }
+
+      if (!mounted) return;
+      setRecentOrders(Array.isArray(farmerOrders) ? farmerOrders.slice(0, 8) : []);
+      setOrderStats(stats || null);
+    } catch (err) {
+      console.error("Dashboard load error:", err);
+      toast.error("Failed to load dashboard data");
+    } finally {
+      if (mounted) setLoadingDashboard(false);
+    }
+  };
+
+  load();
+
+  return () => {
+    mounted = false;
+  };
+// ensure token is in deps so effect runs after token is available
+}, [token, fetchProducts, getFarmerOrders, getOrderStats, navigate]);
+
 
   const getStatusColor = (status) => {
     const c = {
@@ -63,47 +143,20 @@ export default function FarmerDashboard() {
     }
   };
 
-  // fetch dashboard data (products + farmer orders + stats)
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      setLoadingDashboard(true);
-      try {
-        // fetch products (refresh)
-        await fetchProducts().catch((e) => {
-          console.warn("fetchProducts failed:", e);
-        });
-
-        // farmer orders for dashboard
-        const farmerOrders = await getFarmerOrders().catch((e) => {
-          console.warn("getFarmerOrders failed:", e);
-          return [];
-        });
-
-        // order stats (revenue, completed counts etc)
-        const stats = await getOrderStats().catch((e) => {
-          console.warn("getOrderStats failed:", e);
-          return null;
-        });
-
-        if (!mounted) return;
-        setRecentOrders(Array.isArray(farmerOrders) ? farmerOrders.slice(0, 8) : []);
-        setOrderStats(stats || null);
-      } catch (err) {
-        console.error("Dashboard load error:", err);
-        toast.error("Failed to load dashboard data");
-      } finally {
-        if (mounted) setLoadingDashboard(false);
-      }
-    };
-
-    load();
-
-    return () => {
-      mounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchProducts, getFarmerOrders, getOrderStats]);
+  
+// sync activeTab with ?tab= query param so external navigation can switch tabs
+useEffect(() => {
+  const qs = new URLSearchParams(location.search);
+  const tab = qs.get("tab");
+  if (tab && ["overview", "orders", "products"].includes(tab) && tab !== activeTab) {
+    setActiveTab(tab);
+    // optional: scroll to top of tab content
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  // If no tab in query, do nothing and keep current activeTab
+  // We intentionally do NOT reset the tab when location.search is empty.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [location.search]);
 
   const stats = useMemo(() => [
     {

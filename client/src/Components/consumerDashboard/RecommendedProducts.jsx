@@ -1,16 +1,16 @@
-
 // components/consumerDashboard/RecommendedProducts.jsx
 import React, { useMemo } from "react";
 import ProductCard from "./ProductCard";
 import { useProductContext } from "../../Context/productsContext";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
-const PLACEHOLDER =
-  "https://via.placeholder.com/400x300.png?text=No+image";
+const PLACEHOLDER = "https://via.placeholder.com/400x300.png?text=No+image";
+const MAX_RECOMMEND = 6;
 
 export default function RecommendedProducts({ products: propProducts } = {}) {
   const navigate = useNavigate();
-  const { allProducts = [], productsLoading } = useProductContext();
+  const { allProducts = [], productsLoading, addToCart } = useProductContext();
 
   // Prefer propProducts (parent-provided). Otherwise derive recommendations from context.
   const sourceProducts = Array.isArray(propProducts) ? propProducts : Array.isArray(allProducts) ? allProducts : [];
@@ -18,41 +18,60 @@ export default function RecommendedProducts({ products: propProducts } = {}) {
   // Normalize and pick top-rated recommendations (defensive)
   const recommended = useMemo(() => {
     const normalized = (sourceProducts || []).map((p) => {
-      // p might be a product from backend or already a UI-shape product; normalize both.
       const id = p._id ?? p.id ?? p.orderId ?? String(Math.random());
       const image = (p.images && p.images[0]) || p.image || PLACEHOLDER;
       const name = p.title ?? p.name ?? p.productName ?? "Product";
-      const farmer = p.farmerName ?? (p.farmer && (p.farmer.name || p.farmer.fullName)) ?? p.seller ?? "Seller";
-      const price = p.pricePerUnit ?? p.price ?? p.amount ?? 0;
+      // prefer explicit farmerName, then nested farmer.name, then fallback text
+      const farmer =
+        p.farmerName ??
+        (p.farmer && (p.farmer.name || p.farmer.fullName || (typeof p.farmer === "string" ? p.farmer : null))) ??
+        "Local Farmer";
+      const price = Number(p.pricePerUnit ?? p.price ?? p.amount ?? 0);
       const unit = p.unit ?? "kg";
-      const distance = typeof p.distance !== "undefined" ? p.distance : (p.locationDistance || "-");
+      const distance = typeof p.distance !== "undefined" ? p.distance : p.locationDistance ?? "-";
       const rating = p.ratingAverage ?? p.rating ?? p.displayRating ?? "—";
 
       return { id, image, name, farmer, price, unit, distance, rating, raw: p };
     });
 
-    // If prop passed explicitly, return it (but still normalized)
+    // If propProducts passed explicitly, return normalized propProducts (but still limit)
     if (Array.isArray(propProducts) && propProducts.length > 0) {
-      return normalized;
+      return normalized.slice(0, MAX_RECOMMEND);
     }
 
-    // Otherwise sort by rating desc, then by newest (if available), limit 8
+    // Otherwise sort by rating desc, then by newest (if available), limit MAX_RECOMMEND
     return normalized
       .slice()
       .sort((a, b) => {
         const ra = typeof a.rating === "number" ? a.rating : parseFloat(a.rating) || 0;
         const rb = typeof b.rating === "number" ? b.rating : parseFloat(b.rating) || 0;
         if (rb !== ra) return rb - ra;
-        // fallback: if raw has createdAt, newer first
         const ad = new Date(a.raw?.createdAt || 0).getTime();
         const bd = new Date(b.raw?.createdAt || 0).getTime();
         return bd - ad;
       })
-      .slice(0, 8);
+      .slice(0, MAX_RECOMMEND);
   }, [sourceProducts, propProducts]);
 
   const handleSeeMore = () => {
     navigate("/products");
+  };
+
+  const handleViewDetails = (id) => {
+    if (!id) return;
+    navigate(`/view-details/${id}`);
+  };
+
+  const handleAddToCart = async (id) => {
+    if (!id) return toast.error("Invalid product");
+    try {
+      await addToCart(id, 1);
+      toast.success("Added to cart");
+      navigate("/add-to-cart");
+    } catch (err) {
+      console.error("addToCart failed:", err);
+      toast.error(err?.response?.data?.message || "Failed to add to cart");
+    }
   };
 
   if (productsLoading && recommended.length === 0) {
@@ -83,21 +102,22 @@ export default function RecommendedProducts({ products: propProducts } = {}) {
       </div>
 
       {/* Responsive Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
         {recommended.map((p) => (
           <ProductCard
             key={p.id}
             product={{
-              // ProductCard expects fields: image, name, farmer, price, unit, distance, rating, id
               image: p.image,
               name: p.name,
-              farmer: p.farmer,
+              farmer: p.farmer, // pass farmer name explicitly
               price: p.price,
               unit: p.unit,
               distance: p.distance,
               rating: p.rating,
               id: p.id
             }}
+            onAddToCart={() => handleAddToCart(p.id)}
+            onViewDetails={() => handleViewDetails(p.id)}
           />
         ))}
       </div>

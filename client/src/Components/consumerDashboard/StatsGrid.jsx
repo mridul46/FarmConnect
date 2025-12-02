@@ -1,5 +1,4 @@
-
-import React, { cloneElement } from "react";
+import React from "react";
 
 /**
  * StatsGrid
@@ -7,10 +6,10 @@ import React, { cloneElement } from "react";
  * - Defensive: handles icon as a React element or component and keeps icon color white
  */
 
-const DefaultIcon = (props) => (
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" {...props}>
+const DefaultIcon = ({ className, width = 20, height = 20, ...rest }) => (
+  <svg viewBox="0 0 24 24" width={width} height={height} fill="none" className={className} {...rest}>
     <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.6" />
-    <path d="M7 13h3v3M14 8h3v8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M7 13h3v3M14 8h3v8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -51,18 +50,28 @@ export default function StatsGrid({ stats = [] }) {
         const colorClass = colors[color] || colors.gray;
 
         // Safe icon rendering:
-        // - React element (clone to inject props)
+        // - React element (cloneElement to inject props)
         // - Component/function (render with props)
         // - Fallback DefaultIcon
         let IconNode = null;
+
         if (React.isValidElement(IconProp)) {
-          IconNode = cloneElement(IconProp, { size: 22, className: iconClass, ...IconProp.props });
+          // clone element and ensure className & size are applied
+          IconNode = React.cloneElement(IconProp, {
+            size: IconProp.props?.size ?? 22,
+            className: `${iconClass} ${IconProp.props?.className ?? ""}`.trim(),
+            ...IconProp.props
+          });
         } else if (typeof IconProp === "function" || (typeof IconProp === "object" && IconProp !== null)) {
-          // covers lucide/react icons (function components) and any object-style components
-          const C = IconProp;
-          IconNode = <C size={22} className={iconClass} />;
+          // handle functional components (e.g., lucide-react) or other component objects
+          try {
+            const C = IconProp;
+            IconNode = <C size={22} className={iconClass} />;
+          } catch {
+            IconNode = <DefaultIcon className={iconClass} />;
+          }
         } else {
-          IconNode = <DefaultIcon className={iconClass} />;
+          IconNode = <DefaultIcon className={iconClass} width={22} height={22} />;
         }
 
         return (

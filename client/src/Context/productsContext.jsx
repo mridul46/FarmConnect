@@ -256,7 +256,7 @@ export const ProductProvider = ({ children }) => {
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error("Order must include items");
     }
-    const res = await api.post(`/orders`, { items, deliveryAddress, paymentProvider, notes });
+    const res = await api.post(`/orders/`, { items, deliveryAddress, paymentProvider, notes });
     return res.data?.data || res.data;
   }, []);
 
@@ -300,7 +300,7 @@ export const ProductProvider = ({ children }) => {
   }, []);
 
   const getOrderStats = useCallback(async () => {
-    const res = await api.get(`/orders/me/stats`);
+    const res = await api.get(`orders/me/stats`);
     return res.data?.data || res.data;
   }, []);
 
@@ -329,7 +329,7 @@ export const ProductProvider = ({ children }) => {
     );
 
     try {
-      const res = await api.patch(`/products/${encodeURIComponent(productId)}`, { stock: newStock });
+      const res = await api.patch(`/products/${encodeURIComponent(productId)}/stock`, { stock: newStock });
       const updated = res.data?.data || res.data;
       // reconcile using returned product if available
       if (updated) {
@@ -392,7 +392,118 @@ export const ProductProvider = ({ children }) => {
   const removeNotification = useCallback((id) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
+  // -------------------------
+// Farmer: edit product (supports optional image file)
+// -------------------------
+const editProductByFarmer = useCallback(
+  async (productId, productData = {}, imageFile = null, { notify = false } = {}) => {
+    if (!productId) throw new Error("productId required");
 
+    // Keep snapshot to rollback if needed
+    const snapshot = allProducts;
+
+    // Minimal optimistic update: merge provided fields (don't overwrite unrelated fields)
+    setAllProducts((prev) =>
+      prev.map((p) =>
+        String(p._id) === String(productId) || String(p.id) === String(productId)
+          ? { ...p, ...productData }
+          : p
+      )
+    );
+
+    try {
+      let res;
+      const url = `/products/${encodeURIComponent(productId)}`;
+
+      if (imageFile) {
+        // use multipart/form-data when updating image
+        const fd = new FormData();
+        // append fields from productData
+        Object.entries(productData || {}).forEach(([k, v]) => {
+          if (v === undefined || v === null) return;
+          // If value is an object/array, stringify (server should handle)
+          if (typeof v === "object" && !(v instanceof File) && !(v instanceof Blob)) {
+            fd.append(k, JSON.stringify(v));
+          } else {
+            fd.append(k, String(v));
+          }
+        });
+        // append file (backend expects "file" as you used in multer)
+        fd.append("file", imageFile);
+
+        res = await api.patch(url, fd, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+      } else {
+        // plain JSON patch
+        res = await api.patch(url, productData);
+      }
+
+      const updated = res.data?.data || res.data;
+
+      if (updated) {
+        // reconcile using server-returned product
+        setAllProducts((prev) =>
+          prev.map((p) =>
+            String(p._id) === String(productId) || String(p.id) === String(productId)
+              ? { ...p, ...updated }
+              : p
+          )
+        );
+      } else {
+        // no product returned — refresh from server for certainty
+        await fetchProducts().catch(() => {});
+      }
+
+      return updated;
+    } catch (err) {
+      // rollback on error
+      console.error("editProductByFarmer failed:", err?.response?.data || err.message);
+      if (snapshot) setAllProducts(snapshot);
+
+      // optionally attempt to fetch a fresh product to reconcile
+      try {
+        const fresh = await fetchProductById(productId).catch(() => null);
+        if (fresh) {
+          setAllProducts((prev) =>
+            prev.map((p) =>
+              String(p._id) === String(productId) || String(p.id) === String(productId) ? fresh : p
+            )
+          );
+        } else {
+          // fallback to full refresh
+          await fetchProducts().catch(() => {});
+        }
+      } catch (e) {
+        console.warn("editProductByFarmer rollback fetch failed:", e);
+      }
+
+      throw err;
+    }
+  },
+  [allProducts, fetchProductById, fetchProducts]
+);
+
+// -------------------------
+// Top Products: By Sales
+// -------------------------
+const getTopProductsBySales = useCallback(async (limit = 5, category = null) => {
+  try {
+    const params = new URLSearchParams();
+    if (limit) params.set("limit", String(limit));
+    if (category) params.set("category", String(category));
+
+    const url = params.toString()
+      ? `/products/top/sales?${params.toString()}`
+      : `/products/top/sales`;
+
+    const res = await api.get(url);
+    return res.data?.data || [];
+  } catch (err) {
+    console.error("getTopProductsBySales error:", err?.response?.data || err.message);
+    throw err;
+  }
+}, []);
   // -------------------------
   // Derived values
   // -------------------------
@@ -451,7 +562,8 @@ export const ProductProvider = ({ children }) => {
     // product management (new)
     updateProductStock,
     deleteProduct,
-
+    getTopProductsBySales,
+    editProductByFarmer,
     // notifications
     notifications,
     addNotification,

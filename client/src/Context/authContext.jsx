@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState } from "react";
 import axios from "axios";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
+const backendUrl = import.meta.env.VITE_BACKEND_URL?.replace(/\/+$/, "") || "";
 axios.defaults.baseURL = backendUrl;
 axios.defaults.withCredentials = true;
 
@@ -40,7 +39,7 @@ export const AuthProvider = ({ children }) => {
   // ----------------------------------------------------
   const loginWithEmail = async (email, password) => {
     try {
-      const res = await axios.post("api/v1/auth/login", { email, password });
+      const res = await axios.post("/api/v1/auth/login", { email, password });
 
       const { accessToken, refreshToken, user } = res.data.data;
       saveSession(accessToken, user, refreshToken);
@@ -56,7 +55,7 @@ export const AuthProvider = ({ children }) => {
   // ----------------------------------------------------
   const registerConsumer = async (formData) => {
     try {
-      const res = await axios.post("api/v1/auth/register/consumer", formData);
+      const res = await axios.post("/api/v1/auth/register/consumer", formData);
       const { accessToken, refreshToken, user } = res.data.data;
 
       saveSession(accessToken, user, refreshToken);
@@ -72,7 +71,7 @@ export const AuthProvider = ({ children }) => {
   // ----------------------------------------------------
   const registerFarmer = async (formData) => {
     try {
-      const res = await axios.post("api/v1/auth/register/farmer", formData);
+      const res = await axios.post("/api/v1/auth/register/farmer", formData);
       const { accessToken, refreshToken, user } = res.data.data;
       saveSession(accessToken, user, refreshToken);
       return res.data.data;
@@ -88,7 +87,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await axios.post(
-        "api/v1/auth/logout",
+        "/api/v1/auth/logout",
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

@@ -1,10 +1,12 @@
 // src/pages/Products.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import ProductCard from "../components/Products/ProductCard/";
-import { Leaf, ShoppingCart, Search } from "lucide-react";
+import { Leaf, ShoppingCart, Search, LogOut } from "lucide-react";
 import Footer from "../components/layout/Footer";
 import { useNavigate } from "react-router-dom";
 import { useProductContext } from "../Context/productsContext";
+import { useAuth } from "../Context/authContext";
+import toast from "react-hot-toast";
 
 export default function Products() {
   const navigate = useNavigate();
@@ -17,17 +19,50 @@ export default function Products() {
     cartCount
   } = useProductContext();
 
+  const { user, logout } = useAuth();
+
   // UI state
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [showOrganicOnly, setShowOrganicOnly] = useState(false);
   const [showInStockOnly, setShowInStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState("");
+  const [openMenu, setOpenMenu] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logout successful");
+      navigate("/login");
+    } catch (err) {
+      console.error("Logout failed", err);
+      toast.error("Logout failed");
+    }
+  };
 
   // fetch products on mount (context already does an initial fetch, but safe to call)
   useEffect(() => {
     fetchProducts().catch(() => {});
   }, [fetchProducts]);
+
+  // close dropdown when clicking outside or pressing Escape
+  useEffect(() => {
+    const handleDocumentClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpenMenu(false);
+      }
+    };
+    const handleKey = (e) => {
+      if (e.key === "Escape") setOpenMenu(false);
+    };
+    document.addEventListener("mousedown", handleDocumentClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleDocumentClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, []);
 
   // dynamic categories from backend (safe)
   const categories = useMemo(() => {
@@ -49,7 +84,11 @@ export default function Products() {
     if (!id) return;
     navigate(`/view-details/${id}`);
   };
-  const handleChat = (farmer) => console.log("Chat with:", farmer);
+
+  const handleChat = (farmer) => {
+    console.log("Chat with:", farmer);
+    // navigate to chat route if you have one, e.g. navigate(`/chat/${farmerId}`)
+  };
 
   // Derived filtered list (client-side) with robust distance sorting
   const filteredProducts = useMemo(() => {
@@ -72,41 +111,44 @@ export default function Products() {
     if (showOrganicOnly) result = result.filter((p) => p?.organic === true);
     if (showInStockOnly) result = result.filter((p) => (p?.stockQuantity ?? p?.stock ?? 0) > 0);
 
-    // sorting helpers
-    // const safeNum = (v) => {
-    //   if (v == null) return Infinity; // missing -> push to end
-    //   const n = Number(v);
-    //   return Number.isNaN(n) ? Infinity : n;
-    // };
     const safeNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : Infinity);
 
     if (sortBy === "price-asc") {
-      result.sort((a, b) => (safeNum(a?.pricePerUnit) - safeNum(b?.pricePerUnit)));
+      result.sort((a, b) => safeNum(a?.pricePerUnit) - safeNum(b?.pricePerUnit));
     }
     if (sortBy === "price-desc") {
-      result.sort((a, b) => (safeNum(b?.pricePerUnit) - safeNum(a?.pricePerUnit)));
+      result.sort((a, b) => safeNum(b?.pricePerUnit) - safeNum(a?.pricePerUnit));
     }
 
-  
-
-if (sortBy === "distance") {
-  result.sort((a, b) => {
-    const da = safeNum(a?.distance);
-    const db = safeNum(b?.distance);
-    if (da === db) {
-      // tie-break: cheaper price first
-      return safeNum(a?.pricePerUnit ?? a?.price ?? 0) - safeNum(b?.pricePerUnit ?? b?.price ?? 0);
+    if (sortBy === "distance") {
+      result.sort((a, b) => {
+        const da = safeNum(a?.distance);
+        const db = safeNum(b?.distance);
+        if (da === db) {
+          // tie-break: cheaper price first
+          return safeNum(a?.pricePerUnit ?? a?.price ?? 0) - safeNum(b?.pricePerUnit ?? b?.price ?? 0);
+        }
+        return da - db;
+      });
     }
-    return da - db;
-  });
-}
 
     if (sortBy === "stock") {
-      result.sort((a, b) => (safeNum(b?.stockQuantity ?? b?.stock) - safeNum(a?.stockQuantity ?? a?.stock)));
+      result.sort((a, b) => safeNum(b?.stockQuantity ?? b?.stock) - safeNum(a?.stockQuantity ?? a?.stock));
     }
 
     return result;
   }, [allProducts, selectedCategory, searchTerm, showOrganicOnly, showInStockOnly, sortBy]);
+
+  const { userName, initials } = useMemo(() => {
+    const name = user?.name || "Guest";
+    const initials = name
+      .split(" ")
+      .map((n) => n[0] || "")
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+    return { userName: name, initials: initials || null };
+  }, [user?.name]);
 
   return (
     <div className="min-h-screen bg-linear-to-r from-green-50 via-white to-emerald-50 transition-colors">
@@ -124,7 +166,7 @@ if (sortBy === "distance") {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 relative">
               <div className="relative hidden sm:flex items-center w-96">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                   <Search size={16} />
@@ -143,11 +185,58 @@ if (sortBy === "distance") {
               <button
                 onClick={() => navigate("/add-to-cart")}
                 className="relative px-3 py-2 rounded-xl bg-emerald-600 text-white flex items-center gap-2 hover:scale-105 transition-transform shadow-md"
+                aria-label="Open cart"
               >
                 <ShoppingCart size={18} />
-                <span className="text-sm font-medium">Cart</span>
+                <span className="text-sm font-medium hidden sm:inline">Cart</span>
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs w-6 h-6 flex items-center justify-center shadow">{cartCount}</span>
               </button>
+
+              {/* Profile toggle */}
+              <div className="relative ml-2">
+                <button
+                  onClick={() => setOpenMenu((s) => !s)}
+                  className="w-10 h-10 rounded-full bg-white border flex items-center justify-center shadow-sm text-sm font-medium"
+                  aria-haspopup="true"
+                  aria-expanded={openMenu}
+                >
+                  <span className="text-gray-700">{initials || "U"}</span>
+                </button>
+
+                {openMenu && (
+                  <div
+                    ref={dropdownRef}
+                    role="menu"
+                    aria-label="Profile actions"
+                    className="absolute right-0 mt-2 w-44 bg-white shadow-lg rounded-xl border z-50 animate-fadeIn"
+                  >
+                    <div className="px-4 py-3 border-b">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
+                      <p className="text-xs text-gray-500">{user?.email}</p>
+                    </div>
+
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                      onClick={() => {
+                        navigate("/consumer/dashboard");
+                        setOpenMenu(false);
+                      }}
+                    >
+                      My Dashboard
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setOpenMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 flex items-center gap-2 text-sm text-red-600 hover:bg-red-50 rounded-b-xl"
+                    >
+                      <LogOut size={16} /> Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -158,7 +247,7 @@ if (sortBy === "distance") {
                 key={c}
                 onClick={() => setSelectedCategory(c)}
                 className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-                  selectedCategory === c ? 'bg-emerald-600 text-white shadow' : 'bg-white border border-gray-200 text-gray-700'
+                  selectedCategory === c ? "bg-emerald-600 text-white shadow" : "bg-white border border-gray-200 text-gray-700"
                 }`}
               >
                 {c}
@@ -238,7 +327,7 @@ if (sortBy === "distance") {
             <h3 className="text-xl font-semibold">Failed to load products</h3>
             <p className="text-gray-600 mt-2">{productsError}</p>
             <div className="mt-4">
-              <button onClick={() => fetchProducts().catch(()=>{})} className="px-4 py-2 rounded-xl border">Retry</button>
+              <button onClick={() => fetchProducts().catch(() => {})} className="px-4 py-2 rounded-xl border">Retry</button>
             </div>
           </div>
         ) : filteredProducts.length === 0 ? (
@@ -279,6 +368,7 @@ if (sortBy === "distance") {
       <button
         onClick={() => navigate("/add-to-cart")}
         className="fixed bottom-6 right-6 md:hidden flex items-center gap-3 bg-emerald-600 text-white px-4 py-3 rounded-2xl shadow-lg"
+        aria-label="Open cart"
       >
         <ShoppingCart />
         <span className="font-medium">Cart ({cartCount})</span>
@@ -288,3 +378,4 @@ if (sortBy === "distance") {
     </div>
   );
 }
+

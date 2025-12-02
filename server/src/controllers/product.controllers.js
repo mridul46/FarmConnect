@@ -353,3 +353,225 @@ export const getMyProducts = asyncHandler(async (req, res) => {
 
   res.status(200).json({ success: true, count: products.length, data: products });
 });
+
+// Update product stock (farmer only)
+// Route suggestion: PATCH /api/v1/products/:id/stock
+export const updateStock = asyncHandler(async (req, res) => {
+  // ensure authenticated user
+  if (!req.user || !req.user._id) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  const productId = req.params.id;
+  const { stock, adjustBy } = req.body;
+
+  if (stock === undefined && adjustBy === undefined) {
+    return res.status(400).json({
+      success: false,
+      message: "Provide either 'stock' (absolute) or 'adjustBy' (delta).",
+    });
+  }
+
+  // find product belonging to this farmer
+  const product = await Product.findOne({ _id: productId, farmerId: req.user._id });
+  if (!product) {
+    return res.status(404).json({ success: false, message: "Product not found or unauthorized" });
+  }
+
+  let current = Number.isFinite(Number(product.stock)) ? Number(product.stock) : 0;
+  let newStock = current;
+
+  if (adjustBy !== undefined) {
+    const delta = Number(adjustBy);
+    if (Number.isNaN(delta)) {
+      return res.status(400).json({ success: false, message: "'adjustBy' must be a number" });
+    }
+    newStock = current + delta;
+  } else {
+    const absolute = Number(stock);
+    if (Number.isNaN(absolute)) {
+      return res.status(400).json({ success: false, message: "'stock' must be a number" });
+    }
+    newStock = absolute;
+  }
+
+  if (newStock < 0) {
+    return res.status(400).json({ success: false, message: "Stock cannot be negative" });
+  }
+
+  // apply and keep compatibility field
+  product.stock = newStock;
+  product.stockQuantity = newStock; 
+  await product.save();
+
+  res.status(200).json({ success: true, data: product });
+});
+const parseLimitAndCategory = (req) => {
+  const limit = Math.min(Number(req.query.limit) || 5, 50); // default 5, max 50
+  const category = req.query.category || null;
+  return { limit, category };
+};
+
+/**
+ * GET /api/v1/products/top/sales
+ * Top products by sold / sales count
+ */
+export const getTopBySales = async (req, res, next) => {
+  try {
+    const { limit, category } = parseLimitAndCategory(req);
+
+    const filter = { ...(category ? { category } : {}) };
+
+    const products = await Product.find(filter)
+      .sort({ sold: -1, sales: -1, updatedAt: -1 })
+      .limit(limit)
+      .lean()
+      .exec();
+
+    return res.json({ success: true, count: products.length, data: products });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/v1/products/top/rating
+ * Top products by rating average. Handles rating as number or object.
+ */
+export const getTopByRating = async (req, res, next) => {
+  try {
+    const { limit, category } = parseLimitAndCategory(req);
+    const filter = { ...(category ? { category } : {}) };
+
+    // Use aggregation so we can normalize different rating shapes consistently
+    const pipeline = [
+      { $match: filter },
+      {
+        $addFields: {
+          ratingAverage: {
+            $switch: {
+              branches: [
+                { case: { $isNumber: "$rating" }, then: "$rating" },
+                { case: { $and: [{ $isObject: "$rating" }, { $ne: ["$rating.average", undefined] }] }, then: "$rating.average" },
+                { case: { $and: [{ $isObject: "$rating" }, { $ne: ["$rating.avg", undefined] }] }, then: "$rating.avg" }
+              ],
+              default: { $ifNull: ["$displayRating", 0] }
+            }
+          }
+        }
+      },
+      { $sort: { ratingAverage: -1, ratingCount: -1 } },
+      { $limit: limit }
+    ];
+
+    const results = await Product.aggregate(pipeline).exec();
+    return res.json({ success: true, count: results.length, data: results });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/v1/products/top/recent
+ * Newest products by createdAt
+ */
+export const getTopByRecent = async (req, res, next) => {
+  try {
+    const { limit, category } = parseLimitAndCategory(req);
+    const filter = { ...(category ? { category } : {}) };
+
+    const products = await Product.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean()
+      .exec();
+
+    return res.json({ success: true, count: products.length, data: products });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/v1/products/top/views
+ * Top products by views (field: views or viewsCount)
+ */
+export const getTopByViews = async (req, res, next) => {
+  try {
+    const { limit, category } = parseLimitAndCategory(req);
+    const filter = { ...(category ? { category } : {}) };
+
+    // If your schema uses viewsCount or views, try to sort both by using aggregation
+    const pipeline = [
+      { $match: filter },
+      {
+        $addFields: {
+          viewsCount: { $ifNull: ["$viewsCount", "$views"] }
+        }
+      },
+      { $sort: { viewsCount: -1, updatedAt: -1 } },
+      { $limit: limit }
+    ];
+
+    const results = await Product.aggregate(pipeline).exec();
+    return res.json({ success: true, count: results.length, data: results });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/v1/products/top/trending
+ * Trending heuristic: recent sales + rating. This is a simple and fast approach.
+ */
+export const getTopTrending = async (req, res, next) => {
+  try {
+    const { limit, category } = parseLimitAndCategory(req);
+    const filter = { ...(category ? { category } : {}) };
+
+    // Aggregation builds a score from recent sales (sold in last 30 days) + ratingAverage
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const pipeline = [
+      { $match: filter },
+      // if you track per-order sales timestamps you can do more — here we use sold & rating
+      {
+        $addFields: {
+          ratingAverage: {
+            $switch: {
+              branches: [
+                { case: { $isNumber: "$rating" }, then: "$rating" },
+                { case: { $and: [{ $isObject: "$rating" }, { $ne: ["$rating.average", undefined] }] }, then: "$rating.average" },
+                { case: { $and: [{ $isObject: "$rating" }, { $ne: ["$rating.avg", undefined] }] }, then: "$rating.avg" }
+              ],
+              default: { $ifNull: ["$displayRating", 0] }
+            }
+          },
+          recentFactor: {
+            // boost if product created recently; scale between 0..1
+            $cond: [{ $gte: ["$createdAt", thirtyDaysAgo] }, 1, 0.2]
+          },
+          soldCount: { $ifNull: ["$sold", "$sales"] }
+        }
+      },
+      {
+        $addFields: {
+          trendingScore: {
+            $add: [
+              { $multiply: ["$ratingAverage", 2] }, // weight rating
+              { $multiply: ["$soldCount", 0.5] }, // weight sold
+              { $multiply: ["$recentFactor", 2] }  // recent boost
+            ]
+          }
+        }
+      },
+      { $sort: { trendingScore: -1, soldCount: -1, ratingAverage: -1 } },
+      { $limit: limit }
+    ];
+
+    const results = await Product.aggregate(pipeline).exec();
+    return res.json({ success: true, count: results.length, data: results });
+  } catch (err) {
+    next(err);
+  }
+};

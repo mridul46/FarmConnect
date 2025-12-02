@@ -6,7 +6,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Search, ShoppingCart, LogOut, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Context/authContext";
-import { useProductContext } from "../../Context/productsContext"; // <-- optional: provides cartCount
+import { useProductContext } from "../../Context/productsContext"; 
 import toast from "react-hot-toast";
 
 export default function Header() {
@@ -77,7 +77,7 @@ export default function Header() {
         {/* LEFT */}
         <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
-            👋 Welcome,{" "}
+             Welcome,{" "}
             <span className="bg-linear-to-r from-green-600 to-emerald-600 text-transparent bg-clip-text">
               {userName}
             </span>
@@ -99,7 +99,7 @@ export default function Header() {
 
           {/* View Cart */}
           <button
-            onClick={() => navigate("/checkout")}
+            onClick={() => navigate("/add-to-cart")}
             title="View cart"
             className="w-full sm:w-auto px-4 py-2 rounded-xl flex items-center justify-center gap-2 bg-linear-to-r from-green-600 to-emerald-600 text-white font-semibold text-sm sm:text-base hover:shadow-lg hover:shadow-green-600/30 transition-all"
             aria-label="View cart"
