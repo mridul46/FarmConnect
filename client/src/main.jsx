@@ -5,11 +5,10 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import "./index.css";
 import { AuthProvider } from "./Context/authContext";
-import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "react-hot-toast";
 import { ProductProvider } from "./Context/productsContext.jsx";
 
-// 🔥 Add this - Force COOP policy in JavaScript
+//  Add this - Force COOP policy in JavaScript
 if (document.currentScript?.parentElement === document.head) {
   const meta = document.createElement('meta');
   meta.httpEquiv = 'Cross-Origin-Opener-Policy';
@@ -19,13 +18,11 @@ if (document.currentScript?.parentElement === document.head) {
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <AuthProvider>
         <ProductProvider>
           <App />
          <Toaster/>
         </ProductProvider>
       </AuthProvider>
-    </GoogleOAuthProvider>
   </BrowserRouter>
 );
