@@ -2,7 +2,7 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../../Context/authContext";
 import React from "react";
 
-export default function ProtectedRoute({ allowedRoles }) {
+export default function ProtectedRoute({ allowedRoles=[] }) {
   const { user, token } = useAuth();
 
   // Not logged in → go to login
