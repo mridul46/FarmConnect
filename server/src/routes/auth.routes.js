@@ -5,7 +5,6 @@ import {
   registerFarmer,
   login,
   logout,
-  getMe
 } from "../controllers/auth.controllers.js";
 
 import { verifyJWT } from "../middleware/auth.middleware.js";
@@ -29,6 +28,5 @@ router.post("/login",login);
 // SESSION
 // ------------------------------
 router.post("/logout", verifyJWT, logout);
-router.get("/me", verifyJWT, getMe);
 
 export default router;

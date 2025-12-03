@@ -7,6 +7,9 @@ import { Product } from "../../models/Product.model.js";
 import { Order } from "../../models/Order.model.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { User } from "../../models/User.model.js";
+import { v2 as cloudinary } from "cloudinary";
+import fs from "fs"
+
 // Get farmer dashboard stats
 export const getFarmerStats = asyncHandler(async (req, res) => {
   const farmerId = req.user._id;
@@ -114,60 +117,6 @@ export const getFarmerStats = asyncHandler(async (req, res) => {
   });
 });
 
-// Update farmer-specific profile fields
- export const updateFarmerProfile = asyncHandler(async (req, res) => {
-  const { shopName, bankDetails } = req.body;
-
-  if (req.user.role !== "farmer") {
-    return res.status(403).json({
-      success: false,
-      message: "Only farmers can update these fields",
-    });
-  }
-
-  // Initialize update object
-  const updateFields = {};
-
-  if (shopName) updateFields.shopName = shopName;
-
-  if (bankDetails) {
-    // Ensure bankDetails is an object in the document
-    const existingUser = await User.findById(req.user._id).select("bankDetails");
-    if (!existingUser.bankDetails || typeof existingUser.bankDetails !== "object") {
-      existingUser.bankDetails = {};
-    }
-
-    if (bankDetails.accountNumber) existingUser.bankDetails.accountNumber = bankDetails.accountNumber;
-    if (bankDetails.ifscCode) existingUser.bankDetails.ifscCode = bankDetails.ifscCode.toUpperCase();
-    if (bankDetails.accountHolderName) existingUser.bankDetails.accountHolderName = bankDetails.accountHolderName;
-
-    if (bankDetails.upiId) {
-      const upiRegex = /^[\w.-]+@[\w.-]+$/;
-      if (!upiRegex.test(bankDetails.upiId)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid UPI ID format",
-        });
-      }
-      existingUser.bankDetails.upiId = bankDetails.upiId;
-    }
-
-    // Set the modified bankDetails object
-    updateFields.bankDetails = existingUser.bankDetails;
-  }
-
-  const updatedUser = await User.findByIdAndUpdate(
-    req.user._id,
-    { $set: updateFields },
-    { new: true, runValidators: true, context: "query" }
-  ).select("+bankDetails");
-
-  res.status(200).json({
-    success: true,
-    message: "Farmer profile updated successfully",
-    data: updatedUser,
-  });
-});
 
 // Get nearby farmers (public)
 export const getNearbyFarmers = asyncHandler(async (req, res) => {
@@ -306,5 +255,160 @@ export const rateFarmer = asyncHandler(async (req, res) => {
     data: {
       rating: farmer.rating
     }
+  });
+});
+export const updateFarmerProfile = asyncHandler(async (req, res) => {
+  // isFarmer middleware already ensures role, but we can be defensive:
+  if (req.user.role !== "farmer") {
+    return res.status(403).json({
+      success: false,
+      message: "Only farmers can update these fields",
+    });
+  }
+
+  // Accept everything we want to allow updating
+  const {
+    name,
+    email,
+    phone,
+    address,
+    shopName,
+    bankDetails,
+  } = req.body || {};
+
+  const user = await User.findById(req.user._id).select("+bankDetails");
+  if (!user) {
+    return res
+      .status(404)
+      .json({ success: false, message: "User not found" });
+  }
+
+  // --------------------------
+  // EMAIL CHANGE (like consumer)
+  // --------------------------
+  if (email && email.toLowerCase() !== user.email) {
+    const exists = await User.findOne({
+      email: email.toLowerCase(),
+      _id: { $ne: user._id },
+    });
+
+    if (exists) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already in use",
+      });
+    }
+
+    user.email = email.toLowerCase();
+  }
+
+  // --------------------------
+  // BASIC FIELDS
+  // --------------------------
+  if (name) user.name = name;
+  if (phone) user.phone = phone;
+  if (shopName) user.shopName = shopName;
+
+  // --------------------------
+  // PROFILE IMAGE → CLOUDINARY
+  // --------------------------
+  if (req.file) {
+    try {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "farmconnect/profilePhotos",
+      });
+
+      // remove temp file
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (e) {
+        console.warn("unlink failed:", e?.message || e);
+      }
+
+      // mirror to both avatar + profileImage for frontend compatibility
+      user.avatar = result.secure_url;
+      user.profileImage = result.secure_url;
+    } catch (err) {
+      console.error("Farmer profile image upload failed:", err);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload profile image",
+      });
+    }
+  }
+
+  // --------------------------
+  // ADDRESS (same style as consumer)
+  // expects address as object or JSON string:
+  // { street, city, state, pincode, coords?: { lat, lng } }
+  // --------------------------
+  let addressObj = address;
+
+  if (typeof addressObj === "string") {
+    try {
+      addressObj = JSON.parse(addressObj);
+    } catch {
+      addressObj = null;
+    }
+  }
+
+  if (addressObj) {
+    user.address = {
+      street: addressObj.street ?? user.address?.street ?? "",
+      city: addressObj.city ?? user.address?.city ?? "",
+      state: addressObj.state ?? user.address?.state ?? "",
+      pincode: addressObj.pincode ?? user.address?.pincode ?? "",
+      coords: addressObj.coords
+        ? {
+            type: "Point",
+            coordinates: [
+              Number(addressObj.coords.lng),
+              Number(addressObj.coords.lat),
+            ],
+          }
+        : user.address?.coords,
+    };
+  }
+
+  // --------------------------
+  // BANK DETAILS (your original logic, adapted)
+  // --------------------------
+  if (bankDetails) {
+    if (!user.bankDetails || typeof user.bankDetails !== "object") {
+      user.bankDetails = {};
+    }
+
+    if (bankDetails.accountNumber) {
+      user.bankDetails.accountNumber = bankDetails.accountNumber;
+    }
+
+    if (bankDetails.ifscCode) {
+      user.bankDetails.ifscCode = bankDetails.ifscCode.toUpperCase();
+    }
+
+    if (bankDetails.accountHolderName) {
+      user.bankDetails.accountHolderName = bankDetails.accountHolderName;
+    }
+
+    if (bankDetails.upiId) {
+      const upiRegex = /^[\w.-]+@[\w.-]+$/;
+      if (!upiRegex.test(bankDetails.upiId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid UPI ID format",
+        });
+      }
+      user.bankDetails.upiId = bankDetails.upiId;
+    }
+  }
+
+  await user.save();
+
+  const safe = user.getSafeProfile ? user.getSafeProfile() : user.toObject();
+
+  res.status(200).json({
+    success: true,
+    message: "Farmer profile updated successfully",
+    data: safe,
   });
 });

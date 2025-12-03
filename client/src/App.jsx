@@ -21,6 +21,8 @@ import Unauthorized from "./pages/Unauthorized";
 import ProtectedRoute from "./components/protected/ProtectedRoute";
 import ProductDetailsUI from "./pages/ProductDetails";
 import AddToCard from "./pages/AddToCard"
+import Profile from "./components/consumerDashboard/Profile";
+import FarmerProfile from "./pages/FarmerProfile";
 
 export default function App() {
   const productsRef = useRef(null);
@@ -76,6 +78,7 @@ export default function App() {
         <Route path="/add-to-cart"  element={<AddToCard/>} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/chatroom" element={<ChatPage />} />
+        <Route path="/consumer/dashboard/profile" element={<Profile/>}/>
       </Route>
 
       {/* Farmer Routes */}
@@ -83,6 +86,10 @@ export default function App() {
         <Route
           path="/farmer/dashboard"
           element={<FarmerDashboard ref={farmerRef} />}
+        />
+        <Route
+        path="/farmer/dashboard/profile"
+        element={<FarmerProfile/>}
         />
       </Route>
 

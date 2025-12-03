@@ -259,7 +259,7 @@ export default function ProductForm({ initial = {}, onSubmit, submitLabel = "Sav
         </FormSection>
 
         {/* Pricing & Stock */}
-        <FormSection icon={Droplet} title="💰 Pricing & Inventory">
+        <FormSection icon={Droplet} title=" Pricing & Inventory">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Price per Unit (₹)" error={errors.pricePerUnit} required>
               <div className="relative">
@@ -344,7 +344,7 @@ export default function ProductForm({ initial = {}, onSubmit, submitLabel = "Sav
         </FormSection>
 
         {/* Location */}
-        <FormSection icon={MapPin} title="📍 Location">
+        <FormSection icon={MapPin} title=" Location">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Latitude" error={errors.location} required>
               <input
@@ -383,7 +383,7 @@ export default function ProductForm({ initial = {}, onSubmit, submitLabel = "Sav
         </FormSection>
 
         {/* Farming & Nutrients */}
-        <FormSection icon={Leaf} title="🌱 Farming Information">
+        <FormSection icon={Leaf} title=" Farming Information">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Farming Method">
               <select
@@ -428,7 +428,7 @@ export default function ProductForm({ initial = {}, onSubmit, submitLabel = "Sav
                 className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 shrink-0"
               />
               <span className="text-sm font-medium text-gray-700">
-                🌱 Certified Organic
+                 Certified Organic
               </span>
             </label>
 
@@ -440,14 +440,14 @@ export default function ProductForm({ initial = {}, onSubmit, submitLabel = "Sav
                 className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 shrink-0"
               />
               <span className="text-sm font-medium text-gray-700">
-                👁️ Visible to Buyers
+                Visible to Buyers
               </span>
             </label>
           </div>
         </FormSection>
 
         {/* Image Upload */}
-        <FormSection icon={Upload} title="📸 Product Image">
+        <FormSection icon={Upload} title=" Product Image">
           <div className="space-y-4">
             {/* Drag & Drop Area */}
             <div

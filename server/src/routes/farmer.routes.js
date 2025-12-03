@@ -8,6 +8,7 @@ import {
 } from "../controllers/User/farmer.controllers.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 import { isFarmer, isConsumer } from "../middleware/role.middleware.js";
+import { upload } from "../middleware/multer.js";
 
 const router = Router();
 
@@ -18,12 +19,6 @@ const router = Router();
  */
 router.get("/stats", verifyJWT, isFarmer, getFarmerStats);
 
-/**
- * @route   PUT /api/v1/farmer/profile
- * @desc    Update farmer profile details (shopName, bankDetails)
- * @access  Private (Farmer only)
- */
-router.put("/profile", verifyJWT, isFarmer, updateFarmerProfile);
 
 /**
  * @route   GET /api/v1/farmer/nearby
@@ -37,7 +32,14 @@ router.get("/nearby", getNearbyFarmers);
  * @desc    Get farmer public profile with basic info and top products
  * @access  Public
  */
-router.get("/:id", getFarmerProfile);
+router.get("/:id",verifyJWT, isFarmer, getFarmerProfile);
+router.put(
+  "/profile",
+  verifyJWT,
+  isFarmer,
+  upload.single("profileImage"),   
+  updateFarmerProfile
+);
 
 /**
  * @route   POST /api/v1/farmer/:id/rate

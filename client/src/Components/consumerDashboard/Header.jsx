@@ -137,7 +137,7 @@ export default function Header() {
                 <button
                   className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
                   onClick={() => {
-                    navigate("/profile");
+                    navigate("/consumer/dashboard/profile");
                     setOpenMenu(false);
                   }}
                 >

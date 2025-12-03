@@ -1,12 +1,13 @@
 // src/pages/Products.jsx
 import React, { useEffect, useMemo, useState, useRef } from "react";
-import ProductCard from "../components/Products/ProductCard/";
+import ProductCard from "../components/Products/ProductCard/"; // optional now, but you can keep
 import { Leaf, ShoppingCart, Search, LogOut } from "lucide-react";
 import Footer from "../components/layout/Footer";
 import { useNavigate } from "react-router-dom";
 import { useProductContext } from "../Context/productsContext";
 import { useAuth } from "../Context/authContext";
 import toast from "react-hot-toast";
+import PaginatedProducts from "../components/Products/PaginatedProducts";
 
 export default function Products() {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ export default function Products() {
     productsError,
     fetchProducts,
     addToCart,
-    cartCount
+    cartCount,
   } = useProductContext();
 
   const { user, logout } = useAuth();
@@ -66,7 +67,9 @@ export default function Products() {
 
   // dynamic categories from backend (safe)
   const categories = useMemo(() => {
-    const set = new Set((allProducts || []).map((p) => p?.category).filter(Boolean));
+    const set = new Set(
+      (allProducts || []).map((p) => p?.category).filter(Boolean)
+    );
     return ["All", ...Array.from(set)];
   }, [allProducts]);
 
@@ -85,9 +88,9 @@ export default function Products() {
     navigate(`/view-details/${id}`);
   };
 
-  const handleChat = (farmer) => {
-    console.log("Chat with:", farmer);
-    // navigate to chat route if you have one, e.g. navigate(`/chat/${farmerId}`)
+  const handleChat = (product) => {
+    console.log("Chat with farmer of product:", product);
+    // later: navigate(`/chat/${farmerId}`)
   };
 
   // Derived filtered list (client-side) with robust distance sorting
@@ -100,16 +103,22 @@ export default function Products() {
 
     if (searchTerm.trim() !== "") {
       const q = searchTerm.toLowerCase();
-      result = result.filter(
-        (p) =>
-          ((p.title || p.name || "") + " " + (p.farmerName || p.farmer?.name || "") + " " + (p.category || ""))
-            .toLowerCase()
-            .includes(q)
+      result = result.filter((p) =>
+        (
+          (p.title || p.name || "") +
+          " " +
+          (p.farmerName || p.farmer?.name || "") +
+          " " +
+          (p.category || "")
+        )
+          .toLowerCase()
+          .includes(q)
       );
     }
 
     if (showOrganicOnly) result = result.filter((p) => p?.organic === true);
-    if (showInStockOnly) result = result.filter((p) => (p?.stockQuantity ?? p?.stock ?? 0) > 0);
+    if (showInStockOnly)
+      result = result.filter((p) => (p?.stockQuantity ?? p?.stock ?? 0) > 0);
 
     const safeNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : Infinity);
 
@@ -126,18 +135,32 @@ export default function Products() {
         const db = safeNum(b?.distance);
         if (da === db) {
           // tie-break: cheaper price first
-          return safeNum(a?.pricePerUnit ?? a?.price ?? 0) - safeNum(b?.pricePerUnit ?? b?.price ?? 0);
+          return (
+            safeNum(a?.pricePerUnit ?? a?.price ?? 0) -
+            safeNum(b?.pricePerUnit ?? b?.price ?? 0)
+          );
         }
         return da - db;
       });
     }
 
     if (sortBy === "stock") {
-      result.sort((a, b) => safeNum(b?.stockQuantity ?? b?.stock) - safeNum(a?.stockQuantity ?? a?.stock));
+      result.sort(
+        (a, b) =>
+          safeNum(b?.stockQuantity ?? b?.stock) -
+          safeNum(a?.stockQuantity ?? a?.stock)
+      );
     }
 
     return result;
-  }, [allProducts, selectedCategory, searchTerm, showOrganicOnly, showInStockOnly, sortBy]);
+  }, [
+    allProducts,
+    selectedCategory,
+    searchTerm,
+    showOrganicOnly,
+    showInStockOnly,
+    sortBy,
+  ]);
 
   const { userName, initials } = useMemo(() => {
     const name = user?.name || "Guest";
@@ -161,8 +184,12 @@ export default function Products() {
                 <Leaf size={26} className="text-white" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Fresh Produce</h1>
-                <p className="hidden sm:block text-sm text-gray-500">Direct from local farmers — fresh & transparent</p>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
+                  Fresh Produce
+                </h1>
+                <p className="hidden sm:block text-sm text-gray-500">
+                  Direct from local farmers — fresh & transparent
+                </p>
               </div>
             </div>
 
@@ -188,8 +215,12 @@ export default function Products() {
                 aria-label="Open cart"
               >
                 <ShoppingCart size={18} />
-                <span className="text-sm font-medium hidden sm:inline">Cart</span>
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs w-6 h-6 flex items-center justify-center shadow">{cartCount}</span>
+                <span className="text-sm font-medium hidden sm:inline">
+                  Cart
+                </span>
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs w-6 h-6 flex items-center justify-center shadow">
+                  {cartCount}
+                </span>
               </button>
 
               {/* Profile toggle */}
@@ -211,7 +242,9 @@ export default function Products() {
                     className="absolute right-0 mt-2 w-44 bg-white shadow-lg rounded-xl border z-50 animate-fadeIn"
                   >
                     <div className="px-4 py-3 border-b">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {userName}
+                      </p>
                       <p className="text-xs text-gray-500">{user?.email}</p>
                     </div>
 
@@ -247,7 +280,9 @@ export default function Products() {
                 key={c}
                 onClick={() => setSelectedCategory(c)}
                 className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-                  selectedCategory === c ? "bg-emerald-600 text-white shadow" : "bg-white border border-gray-200 text-gray-700"
+                  selectedCategory === c
+                    ? "bg-emerald-600 text-white shadow"
+                    : "bg-white border border-gray-200 text-gray-700"
                 }`}
               >
                 {c}
@@ -263,18 +298,30 @@ export default function Products() {
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="flex items-center gap-2 bg-white border rounded-xl px-3 py-2 shadow-sm">
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={showOrganicOnly} onChange={(e) => setShowOrganicOnly(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={showOrganicOnly}
+                  onChange={(e) => setShowOrganicOnly(e.target.checked)}
+                />
                 <span className="text-sm">Organic</span>
               </label>
               <div className="h-5 w-px bg-gray-200 mx-2" />
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={showInStockOnly} onChange={(e) => setShowInStockOnly(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={showInStockOnly}
+                  onChange={(e) => setShowInStockOnly(e.target.checked)}
+                />
                 <span className="text-sm">In stock</span>
               </label>
             </div>
 
             <div className="hidden sm:flex items-center gap-2">
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-3 py-2 border rounded-xl text-sm bg-white">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 border rounded-xl text-sm bg-white"
+              >
                 <option value="">Sort</option>
                 <option value="price-asc">Price: Low → High</option>
                 <option value="price-desc">Price: High → Low</option>
@@ -327,13 +374,22 @@ export default function Products() {
             <h3 className="text-xl font-semibold">Failed to load products</h3>
             <p className="text-gray-600 mt-2">{productsError}</p>
             <div className="mt-4">
-              <button onClick={() => fetchProducts().catch(() => {})} className="px-4 py-2 rounded-xl border">Retry</button>
+              <button
+                onClick={() => fetchProducts().catch(() => {})}
+                className="px-4 py-2 rounded-xl border"
+              >
+                Retry
+              </button>
             </div>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="p-12 bg-white rounded-xl shadow text-center">
-            <h3 className="text-xl font-semibold">No products match your filters.</h3>
-            <p className="text-gray-600 mt-2">Try clearing filters or search terms.</p>
+            <h3 className="text-xl font-semibold">
+              No products match your filters.
+            </h3>
+            <p className="text-gray-600 mt-2">
+              Try clearing filters or search terms.
+            </p>
             <div className="mt-4">
               <button
                 onClick={() => {
@@ -350,17 +406,12 @@ export default function Products() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product._id ?? product.id}
-                product={product}
-                onAddToCart={() => handleAddToCart(product)}
-                onViewDetails={() => handleViewDetails(product._id ?? product.id)}
-                onChat={() => handleChat(product.farmerName)}
-              />
-            ))}
-          </div>
+          <PaginatedProducts
+            products={filteredProducts}
+            onAddToCart={handleAddToCart}
+            onViewDetails={handleViewDetails}
+            onChat={handleChat}
+          />
         )}
       </main>
 
@@ -378,4 +429,3 @@ export default function Products() {
     </div>
   );
 }
-

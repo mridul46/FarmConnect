@@ -21,17 +21,22 @@ export default function RecommendedProducts({ products: propProducts } = {}) {
       const id = p._id ?? p.id ?? p.orderId ?? String(Math.random());
       const image = (p.images && p.images[0]) || p.image || PLACEHOLDER;
       const name = p.title ?? p.name ?? p.productName ?? "Product";
-      // prefer explicit farmerName, then nested farmer.name, then fallback text
-      const farmer =
+      // resolve farmer name robustly from various shapes
+      const farmerName =
         p.farmerName ??
-        (p.farmer && (p.farmer.name || p.farmer.fullName || (typeof p.farmer === "string" ? p.farmer : null))) ??
-        "Local Farmer";
-      const price = Number(p.pricePerUnit ?? p.price ?? p.amount ?? 0);
+        p.farmer?.name ??
+        p.farmerId?.name ??
+        p.farmerId?.shopName ??
+        (typeof p.shopName === "string" && p.shopName) ??
+        "Unknown farmer";
+
+      const price = Number(p.pricePerUnit ?? p.price ?? p.amount ?? 0) || 0;
       const unit = p.unit ?? "kg";
       const distance = typeof p.distance !== "undefined" ? p.distance : p.locationDistance ?? "-";
-      const rating = p.ratingAverage ?? p.rating ?? p.displayRating ?? "—";
+      const ratingRaw = p.ratingAverage ?? p.rating ?? p.displayRating ?? "—";
+      const rating = typeof ratingRaw === "number" ? ratingRaw : parseFloat(ratingRaw) || "—";
 
-      return { id, image, name, farmer, price, unit, distance, rating, raw: p };
+      return { id, image, name, farmer: farmerName, price, unit, distance, rating, raw: p };
     });
 
     // If propProducts passed explicitly, return normalized propProducts (but still limit)
@@ -109,7 +114,7 @@ export default function RecommendedProducts({ products: propProducts } = {}) {
             product={{
               image: p.image,
               name: p.name,
-              farmer: p.farmer, // pass farmer name explicitly
+              farmer: p.farmer,
               price: p.price,
               unit: p.unit,
               distance: p.distance,

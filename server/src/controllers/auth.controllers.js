@@ -1,6 +1,6 @@
 import { User } from "../models/User.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import jwt from "jsonwebtoken";
+
 
 
 // -----------------------------------------------------
@@ -213,14 +213,3 @@ export const logout = asyncHandler(async (req, res) => {
   });
 });
 
-// -----------------------------------------------------
-// GET LOGGED-IN USER
-// -----------------------------------------------------
-export const getMe = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
-
-  res.json({
-    success: true,
-    data: user.getSafeProfile(),
-  });
-});

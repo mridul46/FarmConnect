@@ -87,11 +87,6 @@ export default function Footer() {
                   Terms of Service
                 </a>
               </li>
-              <li>
-                <a href="/admin" className="hover:text-white transition">
-                 Admin
-                </a>
-              </li>
             </ul>
 
             <div className="flex items-center gap-5 mt-4">

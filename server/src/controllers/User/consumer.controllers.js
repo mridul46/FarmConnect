@@ -1,12 +1,23 @@
-// ==========================================
-// controllers/user/consumer.controllers.js
-// Handles consumer-specific operations
-// ==========================================
+// controllers/User/consumer.controllers.js
 
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { Order } from "../../models/Order.model.js";
 import { User } from "../../models/User.model.js";
 import { Product } from "../../models/Product.model.js";
+import fs from "fs";
+import { v2 as cloudinary } from "cloudinary";
+
+// Small helper to enforce consumer role
+const ensureConsumer = (req, res) => {
+  if (req.user.role !== "consumer") {
+    res.status(403).json({
+      success: false,
+      message: "Only consumers can access this resource"
+    });
+    return false;
+  }
+  return true;
+};
 
 // ==========================================
 // @desc    Get consumer dashboard stats
@@ -14,28 +25,26 @@ import { Product } from "../../models/Product.model.js";
 // @access  Private (consumer only)
 // ==========================================
 export const getConsumerStats = asyncHandler(async (req, res) => {
+  if (!ensureConsumer(req, res)) return;
+
   const consumerId = req.user._id;
 
-  const [
-    totalOrders,
-    pendingOrders,
-    completedOrders,
-    totalSpent
-  ] = await Promise.all([
-    Order.countDocuments({ buyerId: consumerId }),
-    Order.countDocuments({
-      buyerId: consumerId,
-      status: { $in: ["pending", "paid", "preparing", "out_for_delivery"] }
-    }),
-    Order.countDocuments({
-      buyerId: consumerId,
-      status: "delivered"
-    }),
-    Order.aggregate([
-      { $match: { buyerId: consumerId, status: "delivered" } },
-      { $group: { _id: null, total: { $sum: "$totalAmount" } } }
-    ])
-  ]);
+  const [totalOrders, pendingOrders, completedOrders, totalSpent] =
+    await Promise.all([
+      Order.countDocuments({ buyerId: consumerId }),
+      Order.countDocuments({
+        buyerId: consumerId,
+        status: { $in: ["pending", "paid", "preparing", "out_for_delivery"] }
+      }),
+      Order.countDocuments({
+        buyerId: consumerId,
+        status: "delivered"
+      }),
+      Order.aggregate([
+        { $match: { buyerId: consumerId, status: "delivered" } },
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+      ])
+    ]);
 
   const recentOrders = await Order.find({ buyerId: consumerId })
     .sort("-createdAt")
@@ -61,6 +70,27 @@ export const getConsumerStats = asyncHandler(async (req, res) => {
   });
 });
 
+// ==========================================
+// @desc    Get consumer profile (safe fields)
+// @route   GET /api/v1/consumer/profile
+// @access  Private (consumer only)
+// ==========================================
+export const getConsumerProfile = asyncHandler(async (req, res) => {
+  if (!ensureConsumer(req, res)) return;
+
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found"
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    data: user.getSafeProfile()
+  });
+});
 
 // ==========================================
 // @desc    Update consumer profile
@@ -68,36 +98,112 @@ export const getConsumerStats = asyncHandler(async (req, res) => {
 // @access  Private (consumer only)
 // ==========================================
 export const updateConsumerProfile = asyncHandler(async (req, res) => {
-  const { name, phone, address } = req.body;
+  if (!ensureConsumer(req, res)) return;
 
-  if (req.user.role !== "consumer") {
-    return res.status(403).json({
-      success: false,
-      message: "Only consumers can update these fields"
-    });
+  const { name, email, phone, address } = req.body || {};
+
+
+
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found" });
   }
 
-  const updateFields = {};
+  // --------------------------
+  // EMAIL CHANGE
+  // --------------------------
+  if (email && email.toLowerCase() !== user.email) {
+    const exists = await User.findOne({
+      email: email.toLowerCase(),
+      _id: { $ne: user._id },
+    });
 
-  if (name) updateFields.name = name;
-  if (phone) updateFields.phone = phone;
-  if (address) {
-    updateFields.address = {
-      ...req.user.address,
-      ...address
+    if (exists) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already in use",
+      });
+    }
+
+    user.email = email.toLowerCase();
+  }
+
+  // --------------------------
+  // BASIC FIELDS
+  // --------------------------
+  if (name) user.name = name;
+  if (phone) user.phone = phone;
+
+  // --------------------------
+  // PROFILE IMAGE → CLOUDINARY
+  // --------------------------
+  if (req.file) {
+    try {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "farmconnect/profilePhotos",
+      });
+
+      console.log("Cloudinary upload result:", result?.secure_url);
+
+      // Remove temp local file
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (e) {
+        console.warn("unlink failed:", e?.message || e);
+      }
+
+      //IMPORTANT: write to BOTH avatar and profileImage for compatibility
+      user.avatar = result.secure_url;
+      user.profileImage = result.secure_url;
+    } catch (err) {
+      console.error("Cloudinary upload failed:", err);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload image",
+      });
+    }
+  }
+
+  // --------------------------
+  // ADDRESS (PARSE IF STRING)
+  // --------------------------
+  let addressObj = address;
+
+  if (typeof addressObj === "string") {
+    try {
+      addressObj = JSON.parse(addressObj);
+    } catch (e) {
+      addressObj = null;
+    }
+  }
+
+  if (addressObj) {
+    user.address = {
+      street: addressObj.street ?? user.address?.street ?? "",
+      city: addressObj.city ?? user.address?.city ?? "",
+      state: addressObj.state ?? user.address?.state ?? "",
+      pincode: addressObj.pincode ?? user.address?.pincode ?? "",
+      coords: addressObj.coords
+        ? {
+            type: "Point",
+            coordinates: [
+              Number(addressObj.coords.lng),
+              Number(addressObj.coords.lat),
+            ],
+          }
+        : user.address?.coords,
     };
   }
 
-  const updatedUser = await User.findByIdAndUpdate(
-    req.user._id,
-    { $set: updateFields },
-    { new: true, runValidators: true }
-  );
+  await user.save();
+
+  const safe = user.getSafeProfile();
+  console.log("updateConsumerProfile -> safe profile:", safe);
 
   res.status(200).json({
     success: true,
-    message: "Consumer profile updated successfully",
-    data: updatedUser
+    message: "Profile updated successfully",
+    data: safe,
   });
 });
 
@@ -108,6 +214,8 @@ export const updateConsumerProfile = asyncHandler(async (req, res) => {
 // @access  Private (consumer only)
 // ==========================================
 export const getConsumerOrders = asyncHandler(async (req, res) => {
+  if (!ensureConsumer(req, res)) return;
+
   const consumerId = req.user._id;
 
   const orders = await Order.find({ buyerId: consumerId })
@@ -120,7 +228,6 @@ export const getConsumerOrders = asyncHandler(async (req, res) => {
   });
 });
 
-
 // ==========================================
 // 📌 Wishlist Feature
 // ==========================================
@@ -129,6 +236,8 @@ export const getConsumerOrders = asyncHandler(async (req, res) => {
 // @route   POST /api/v1/consumer/wishlist/:productId
 // @access  Private (consumer only)
 export const addToWishlist = asyncHandler(async (req, res) => {
+  if (!ensureConsumer(req, res)) return;
+
   const consumerId = req.user._id;
   const { productId } = req.params;
 
@@ -164,11 +273,12 @@ export const addToWishlist = asyncHandler(async (req, res) => {
   });
 });
 
-
 // @desc    Remove product from wishlist
 // @route   DELETE /api/v1/consumer/wishlist/:productId
 // @access  Private (consumer only)
 export const removeFromWishlist = asyncHandler(async (req, res) => {
+  if (!ensureConsumer(req, res)) return;
+
   const consumerId = req.user._id;
   const { productId } = req.params;
 
@@ -180,9 +290,10 @@ export const removeFromWishlist = asyncHandler(async (req, res) => {
     });
   }
 
-  user.wishlist = user.wishlist.filter(
+  user.wishlist = (user.wishlist || []).filter(
     (id) => id.toString() !== productId.toString()
   );
+
   await user.save();
 
   res.status(200).json({
@@ -191,14 +302,22 @@ export const removeFromWishlist = asyncHandler(async (req, res) => {
   });
 });
 
-
 // @desc    Get wishlist products
 // @route   GET /api/v1/consumer/wishlist
 // @access  Private (consumer only)
 export const getWishlist = asyncHandler(async (req, res) => {
+  if (!ensureConsumer(req, res)) return;
+
   const user = await User.findById(req.user._id)
     .populate("wishlist", "title pricePerUnit images farmerId")
     .select("wishlist");
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found"
+    });
+  }
 
   res.status(200).json({
     success: true,
