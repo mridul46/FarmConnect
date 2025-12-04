@@ -1,7 +1,14 @@
 // src/components/ProductCard.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingCart, MapPin, User, TrendingUp, MessageCircle } from "lucide-react";
+import {
+  ShoppingCart,
+  MapPin,
+  User,
+  TrendingUp,
+  MessageCircle,
+  Star,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { useProductContext } from "../../Context/productsContext";
 import { useAuth } from "../../Context/authContext";
@@ -29,12 +36,20 @@ function haversineDistanceKm(lat1, lon1, lat2, lon2) {
   const dLon = toRad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
-export default function ProductCard({ product: initialProduct, onAddToCart: propAdd, onViewDetails: propView, onChat: propChat }) {
+export default function ProductCard({
+  product: initialProduct,
+  onAddToCart: propAdd,
+  onViewDetails: propView,
+  onChat: propChat,
+}) {
   const [isHovered, setIsHovered] = useState(false);
   const [consumerCoords, setConsumerCoords] = useState(null); // { lat, lng } or null
   const [computedDistanceKm, setComputedDistanceKm] = useState(null); // number or null
@@ -54,11 +69,49 @@ export default function ProductCard({ product: initialProduct, onAddToCart: prop
     "";
 
   // product location coords (backend uses GeoJSON: coordinates = [lng, lat])
-  const productLng = product?.location?.coordinates?.[0] ?? product?.location?.lng ?? null;
-  const productLat = product?.location?.coordinates?.[1] ?? product?.location?.lat ?? null;
+  const productLng =
+    product?.location?.coordinates?.[0] ?? product?.location?.lng ?? null;
+  const productLat =
+    product?.location?.coordinates?.[1] ?? product?.location?.lat ?? null;
 
   // quantity available
   const qtyAvailable = Number(product.stockQuantity ?? product.stock ?? Infinity);
+
+  // --- Normalize rating from consumer reviews / backend rating field ---
+  const reviewsArray = Array.isArray(product.reviews) ? product.reviews : [];
+
+  let ratingAverage = null;
+  let ratingCount = 0;
+
+  if (product.rating && typeof product.rating === "object") {
+    // shape: { average, count }
+    ratingAverage =
+      typeof product.rating.average === "number"
+        ? Number(product.rating.average.toFixed(1))
+        : null;
+    ratingCount =
+      typeof product.rating.count === "number"
+        ? product.rating.count
+        : reviewsArray.length;
+  } else if (typeof product.rating === "number") {
+    ratingAverage = Number(product.rating.toFixed(1));
+    ratingCount =
+      reviewsArray.length || product.ratingCount || product.reviews || 0;
+  } else if (reviewsArray.length) {
+    // compute from reviews array with rating field
+    const validRatings = reviewsArray
+      .map((r) => Number(r.rating))
+      .filter((v) => Number.isFinite(v));
+    if (validRatings.length) {
+      const sum = validRatings.reduce((acc, v) => acc + v, 0);
+      ratingAverage = Number((sum / validRatings.length).toFixed(1));
+      ratingCount = validRatings.length;
+    }
+  } else {
+    // fallback if nothing is provided
+    ratingAverage = null;
+    ratingCount = 0;
+  }
 
   useEffect(() => {
     // 1) try to read consumer coords from user profile (if available)
@@ -70,10 +123,16 @@ export default function ProductCard({ product: initialProduct, onAddToCart: prop
       const uLoc = user?.location;
       if (uLoc) {
         if (Array.isArray(uLoc.coordinates) && uLoc.coordinates.length >= 2) {
-          setConsumerCoords({ lat: Number(uLoc.coordinates[1]), lng: Number(uLoc.coordinates[0]) });
+          setConsumerCoords({
+            lat: Number(uLoc.coordinates[1]),
+            lng: Number(uLoc.coordinates[0]),
+          });
           return;
         } else if (uLoc.lat != null && uLoc.lng != null) {
-          setConsumerCoords({ lat: Number(uLoc.lat), lng: Number(uLoc.lng) });
+          setConsumerCoords({
+            lat: Number(uLoc.lat),
+            lng: Number(uLoc.lng),
+          });
           return;
         }
       }
@@ -90,16 +149,17 @@ export default function ProductCard({ product: initialProduct, onAddToCart: prop
         (pos) => {
           if (!mounted) return;
           const { latitude, longitude } = pos.coords;
-          setConsumerCoords({ lat: Number(latitude), lng: Number(longitude) });
+          setConsumerCoords({
+            lat: Number(latitude),
+            lng: Number(longitude),
+          });
         },
-        (err) => {
-          // ignore permission errors; we'll just show fallback
-          // console.warn("geolocation failed", err);
+        () => {
+          // ignore permission errors; fallback stays null
         },
         { maximumAge: 1000 * 60 * 10, timeout: 5000 } // 10 min cache, 5s timeout
       );
       return () => {
-        // no persistent watcher here, so nothing to cleanup
         mounted = false;
       };
     }
@@ -109,8 +169,12 @@ export default function ProductCard({ product: initialProduct, onAddToCart: prop
   useEffect(() => {
     // Compute distance if possible
     if (consumerCoords && productLat != null && productLng != null) {
-      // haversine expects lat/lon pairs
-      const d = haversineDistanceKm(consumerCoords.lat, consumerCoords.lng, Number(productLat), Number(productLng));
+      const d = haversineDistanceKm(
+        consumerCoords.lat,
+        consumerCoords.lng,
+        Number(productLat),
+        Number(productLng)
+      );
       setComputedDistanceKm(Number.isFinite(d) ? Number(d.toFixed(1)) : null);
     } else {
       setComputedDistanceKm(null);
@@ -118,8 +182,10 @@ export default function ProductCard({ product: initialProduct, onAddToCart: prop
   }, [consumerCoords, productLat, productLng]);
 
   const getStockStatus = (quantity) => {
-    if (quantity === 0) return { text: "Out of Stock", color: "text-red-600 bg-red-50" };
-    if (quantity < 10) return { text: "Low Stock", color: "text-orange-600 bg-orange-50" };
+    if (quantity === 0)
+      return { text: "Out of Stock", color: "text-red-600 bg-red-50" };
+    if (quantity < 10)
+      return { text: "Low Stock", color: "text-orange-600 bg-orange-50" };
     return { text: "In Stock", color: "text-green-600 bg-green-50" };
   };
 
@@ -161,10 +227,13 @@ export default function ProductCard({ product: initialProduct, onAddToCart: prop
     } catch (e) {
       // ignore prefetch errors, still navigate
     }
-    navigate(`/product/${id}`);
+    // ✅ match your route: /view-details/:id
+    navigate(`/view-details/${id}`);
   };
 
-  const handleChat = (farmerId = product.farmerId ?? product.farmer ?? product.farmer?._id) => {
+  const handleChat = (
+    farmerId = product.farmerId ?? product.farmer ?? product.farmer?._id
+  ) => {
     if (typeof propChat === "function") return propChat(farmerId);
 
     if (!user) {
@@ -173,8 +242,10 @@ export default function ProductCard({ product: initialProduct, onAddToCart: prop
       return;
     }
 
-    // farmerId could be object with _id, or id string
-    const fid = typeof farmerId === "string" ? farmerId : farmerId?._id ?? farmerId?.id;
+    const fid =
+      typeof farmerId === "string"
+        ? farmerId
+        : farmerId?._id ?? farmerId?.id;
     if (!fid) {
       toast.error("Farmer info not available");
       return;
@@ -184,7 +255,12 @@ export default function ProductCard({ product: initialProduct, onAddToCart: prop
   };
 
   // friendly distance string
-  const distanceLabel = computedDistanceKm != null ? `${computedDistanceKm} km` : (product.distance != null ? `${product.distance} km` : "—");
+  const distanceLabel =
+    computedDistanceKm != null
+      ? `${computedDistanceKm} km`
+      : product.distance != null
+      ? `${product.distance} km`
+      : "—";
 
   return (
     <div
@@ -195,7 +271,11 @@ export default function ProductCard({ product: initialProduct, onAddToCart: prop
       {/* Image */}
       <div className="relative h-56 overflow-hidden bg-linear-to-br from-green-50 to-emerald-50">
         <img
-          src={(Array.isArray(product.images) && product.images[0]) || product.image || "/placeholder-product.jpg"}
+          src={
+            (Array.isArray(product.images) && product.images[0]) ||
+            product.image ||
+            "/placeholder-product.jpg"
+          }
           alt={product.title || product.name || "Product"}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
@@ -204,20 +284,30 @@ export default function ProductCard({ product: initialProduct, onAddToCart: prop
         <div className="absolute top-3 left-3 bg-white/95 px-3 py-1 rounded-full flex items-center gap-2 shadow-sm">
           <MapPin size={14} className="text-green-600" />
           <div className="text-left">
-            <div className="text-xs font-medium text-gray-800 line-clamp-1">{farmerName || "Seller"}</div>
-            <div className="text-[11px] text-gray-500">{distanceLabel}</div>
+            <div className="text-xs font-medium text-gray-800 line-clamp-1">
+              {farmerName || "Seller"}
+            </div>
+            <div className="text-[11px] text-gray-500">
+              {distanceLabel}
+            </div>
           </div>
         </div>
 
         {/* Stock Badge (right) */}
         <div className="absolute top-3 right-3">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${stockStatus.color}`}>
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-medium ${stockStatus.color}`}
+          >
             {stockStatus.text}
           </span>
         </div>
 
         {/* Hover Actions */}
-        <div className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`}>
+        <div
+          className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${
+            isHovered ? "opacity-100" : "opacity-0"
+          }`}
+        >
           <div className="absolute bottom-4 left-4 right-4 flex gap-2">
             <button
               onClick={() => handleViewDetails(product._id || product.id)}
@@ -265,12 +355,20 @@ export default function ProductCard({ product: initialProduct, onAddToCart: prop
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-gray-900">₹{product.pricePerUnit ?? product.price}</span>
-              <span className="text-sm text-gray-500">/{product.unit ?? "unit"}</span>
+              <span className="text-2xl font-bold text-gray-900">
+                ₹{product.pricePerUnit ?? product.price}
+              </span>
+              <span className="text-sm text-gray-500">
+                /{product.unit ?? "unit"}
+              </span>
             </div>
             <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
               <TrendingUp size={12} />
-              <span>{qtyAvailable === Infinity ? "—" : `${qtyAvailable} ${product.unit ?? ""} available`}</span>
+              <span>
+                {qtyAvailable === Infinity
+                  ? "—"
+                  : `${qtyAvailable} ${product.unit ?? ""} available`}
+              </span>
             </div>
           </div>
 
@@ -279,9 +377,11 @@ export default function ProductCard({ product: initialProduct, onAddToCart: prop
             onClick={() => handleAddToCart(product)}
             className={`
               p-3 rounded-xl transition-all duration-300 
-              ${qtyAvailable === 0
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-green-600 text-white hover:bg-green-700 hover:scale-105 shadow-lg shadow-green-600/30"}
+              ${
+                qtyAvailable === 0
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-green-600 text-white hover:bg-green-700 hover:scale-105 shadow-lg shadow-green-600/30"
+              }
             `}
             aria-label="Add to cart"
           >
@@ -289,12 +389,24 @@ export default function ProductCard({ product: initialProduct, onAddToCart: prop
           </button>
         </div>
 
+        {/* Rating + meta */}
         <div className="flex items-center justify-between text-xs text-gray-500 border-t pt-3">
-          <span>⭐ {product.ratingAverage ?? 4.8} ({product.ratingCount ?? 0} reviews)</span>
+          <span className="flex items-center gap-1">
+            <Star
+              size={14}
+              className={`${
+                ratingAverage ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+              }`}
+            />
+            <span>
+              {ratingAverage != null ? ratingAverage : "No rating"}
+              {` `}
+              {ratingCount ? `(${ratingCount} reviews)` : ""}
+            </span>
+          </span>
           <span>Fresh Today</span>
         </div>
       </div>
     </div>
   );
 }
-

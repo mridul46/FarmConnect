@@ -505,6 +505,114 @@ const getTopProductsBySales = useCallback(async (limit = 5, category = null) => 
   }
 }, []);
   // -------------------------
+  // Reviews
+  // -------------------------
+  const addReview = useCallback(
+    async (productId, { rating, comment, title } = {}) => {
+      if (!productId) throw new Error("productId required");
+      if (rating == null) throw new Error("rating is required");
+
+      const payload = {
+        rating,
+        comment: comment ?? "",
+        title: title ?? "",
+      };
+
+      const url = `/products/${encodeURIComponent(productId)}/reviews`;
+      const res = await api.post(url, payload);
+
+      // Controller shape: { success, message, data: { rating, reviews } }
+      const body = res.data || {};
+      const data = body.data || body;
+
+      const ratingObj = data.rating || body.rating || null;
+      const reviews = Array.isArray(data.reviews || body.reviews)
+        ? data.reviews || body.reviews
+        : [];
+
+      let ratingAverage = null;
+      let ratingCount = 0;
+
+      if (ratingObj && typeof ratingObj === "object") {
+        ratingAverage =
+          ratingObj.average ?? ratingObj.avg ?? ratingObj.mean ?? null;
+        ratingCount = ratingObj.count ?? ratingObj.total ?? reviews.length ?? 0;
+      } else if (typeof ratingObj === "number") {
+        ratingAverage = ratingObj;
+        ratingCount = reviews.length ?? 0;
+      } else {
+        ratingAverage = null;
+        ratingCount = reviews.length ?? 0;
+      }
+
+      // Update list page products (so cards reflect new rating instantly)
+      setAllProducts((prev) =>
+        (prev || []).map((p) =>
+          String(p._id) === String(productId) || String(p.id) === String(productId)
+            ? {
+                ...p,
+                ratingAverage:
+                  ratingAverage != null ? Number(ratingAverage) : p.ratingAverage ?? null,
+                ratingCount: Number.isFinite(ratingCount)
+                  ? ratingCount
+                  : p.ratingCount ?? 0,
+              }
+            : p
+        )
+      );
+
+      return {
+        ratingAverage,
+        ratingCount,
+        reviews,
+      };
+    },
+    []
+  );
+
+  const getProductReviews = useCallback(
+    async (productId, { limit = 5, page = 1 } = {}) => {
+      if (!productId) throw new Error("productId required");
+
+      const params = new URLSearchParams();
+      if (limit) params.set("limit", String(limit));
+      if (page) params.set("page", String(page));
+
+      const url = `/products/${encodeURIComponent(productId)}/reviews?${
+        params.toString() || ""
+      }`;
+
+      const res = await api.get(url);
+      const body = res.data || {};
+
+      // controller: { success, count, total, rating, data: [...] }
+      const reviews = Array.isArray(body.data) ? body.data : [];
+      const ratingObj = body.rating || null;
+
+      let ratingAverage = null;
+      let ratingCount = 0;
+
+      if (ratingObj && typeof ratingObj === "object") {
+        ratingAverage =
+          ratingObj.average ?? ratingObj.avg ?? ratingObj.mean ?? null;
+        ratingCount = ratingObj.count ?? ratingObj.total ?? body.total ?? 0;
+      } else if (typeof ratingObj === "number") {
+        ratingAverage = ratingObj;
+        ratingCount = body.total ?? reviews.length ?? 0;
+      }
+
+      return {
+        reviews,
+        count: body.count ?? reviews.length,
+        total: body.total ?? reviews.length,
+        ratingAverage,
+        ratingCount,
+      };
+    },
+    []
+  );
+
+  // -------------------------
   // Derived values
   // -------------------------
   const cartCount = useMemo(() => addedProductIds.length, [addedProductIds]);
@@ -567,7 +675,10 @@ const getTopProductsBySales = useCallback(async (limit = 5, category = null) => 
     // notifications
     notifications,
     addNotification,
-    removeNotification
+    removeNotification,
+    // reviews
+    addReview,
+    getProductReviews,
   };
 
   return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>;

@@ -13,11 +13,13 @@ import {
   getTopByRating,
   getTopByRecent,
   getTopByViews,
-  getTopTrending
+  getTopTrending,
+  addReview,
+  getProductReviews
 } from "../controllers/product.controllers.js";
 
 import { verifyJWT } from "../middleware/auth.middleware.js";
-import { isFarmer, isAdmin } from "../middleware/role.middleware.js";
+import { isFarmer, isAdmin, isConsumer } from "../middleware/role.middleware.js";
 import { upload } from "../middleware/multer.js";
 
 const router = Router();
@@ -93,5 +95,13 @@ router.get("/top/rating", getTopByRating);
 router.get("/top/recent", getTopByRecent);
 router.get("/top/views", getTopByViews);
 router.get("/top/trending", getTopTrending);
+// Reviews (correct paths)
+router.get("/:id/reviews", getProductReviews);
 
+router.post(
+  "/:id/reviews",
+  verifyJWT,   
+  isConsumer,  
+  addReview
+);
 export default router;

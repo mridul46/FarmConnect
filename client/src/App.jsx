@@ -59,6 +59,7 @@ export default function App() {
       <Route path="/products" element={<Products ref={productsRef} />} />
 
       {/* Login & Register */}
+      <Route path="/view-details/:id" element={<ProductDetailsUI />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/consumer/login" element={<ConsumerLogin />} />
       <Route path="/farmer/login" element={<FarmerLogin />} />
@@ -74,7 +75,6 @@ export default function App() {
       {/* Consumer Routes */}
       <Route element={<ProtectedRoute allowedRoles={["consumer"]} />}>
         <Route path="/consumer/dashboard" element={<ConsumerDashboard />} />
-        <Route path="/view-details/:id" element={<ProductDetailsUI />} />
         <Route path="/add-to-cart"  element={<AddToCard/>} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/chatroom" element={<ChatPage />} />

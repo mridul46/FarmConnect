@@ -575,3 +575,152 @@ export const getTopTrending = async (req, res, next) => {
     next(err);
   }
 };
+// Helper: recompute rating average & count from embedded reviews
+function recomputeProductRating(product) {
+  if (!Array.isArray(product.reviews) || product.reviews.length === 0) {
+    product.rating = { average: 0, count: 0 };
+    product.displayRating = 0;
+    return;
+  }
+
+  const valid = product.reviews.filter(
+    (r) => r && Number.isFinite(Number(r.rating))
+  );
+  if (!valid.length) {
+    product.rating = { average: 0, count: 0 };
+    product.displayRating = 0;
+    return;
+  }
+
+  const sum = valid.reduce((acc, r) => acc + Number(r.rating), 0);
+  const avg = sum / valid.length;
+
+  const avgFixed = Number(avg.toFixed(1));
+
+  product.rating = {
+    average: avgFixed,
+    count: valid.length,
+  };
+  // used by some aggregations as fallback
+  product.displayRating = avgFixed;
+}
+// ==========================================
+// @desc Add or update a product review
+// @route POST /api/v1/products/:id/reviews
+// @access Private (consumer)
+// Body: { rating: Number (1-5), comment?: String, title?: String }
+// ==========================================
+export const addReview = asyncHandler(async (req, res) => {
+  // user should be set by verifyJWT middleware
+  if (!req.user || !req.user._id) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Unauthorized" });
+  }
+
+  const productId = req.params.id;
+  const { rating, comment, title } = req.body;
+
+  const numericRating = Number(rating);
+  if (!Number.isFinite(numericRating) || numericRating < 1 || numericRating > 5) {
+    return res.status(400).json({
+      success: false,
+      message: "Rating must be a number between 1 and 5",
+    });
+  }
+
+  const product = await Product.findById(productId);
+  if (!product) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Product not found" });
+  }
+
+  // ensure reviews array
+  if (!Array.isArray(product.reviews)) {
+    product.reviews = [];
+  }
+
+  const userIdStr = String(req.user._id);
+  const existingIndex = product.reviews.findIndex(
+    (r) => r.user && String(r.user) === userIdStr
+  );
+
+  if (existingIndex >= 0) {
+    // update existing review
+    const existing = product.reviews[existingIndex];
+    existing.rating = numericRating;
+    existing.comment = comment?.toString().trim() || "";
+    existing.title = title?.toString().trim() || "";
+    existing.updatedAt = new Date();
+  } else {
+    // add new review
+    product.reviews.push({
+      user: req.user._id,
+      rating: numericRating,
+      comment: comment?.toString().trim() || "",
+      title: title?.toString().trim() || "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
+  // recompute rating aggregate
+  recomputeProductRating(product);
+
+  await product.save();
+
+  return res.status(201).json({
+    success: true,
+    message:
+      existingIndex >= 0
+        ? "Review updated successfully"
+        : "Review added successfully",
+    data: {
+      rating: product.rating,
+      reviews: product.reviews,
+    },
+  });
+});
+// ==========================================
+// @desc Get reviews for a product (preview / paginated)
+// @route GET /api/v1/products/:id/reviews?limit=5&page=1
+// @access Public
+// ==========================================
+export const getProductReviews = asyncHandler(async (req, res) => {
+  const productId = req.params.id;
+  const limit = Math.min(Number(req.query.limit) || 5, 50); // default 5, max 50
+  const page = Math.max(Number(req.query.page) || 1, 1);
+
+  const product = await Product.findById(productId)
+    .select("reviews rating")
+    .populate("reviews.user", "name"); // so you can show reviewer name
+
+  if (!product) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Product not found" });
+  }
+
+  const totalReviews = Array.isArray(product.reviews)
+    ? product.reviews.length
+    : 0;
+
+  // newest first
+  const sorted = [...(product.reviews || [])].sort(
+    (a, b) =>
+      new Date(b.createdAt || b.updatedAt || 0) -
+      new Date(a.createdAt || a.updatedAt || 0)
+  );
+
+  const start = (page - 1) * limit;
+  const pageItems = sorted.slice(start, start + limit);
+
+  return res.status(200).json({
+    success: true,
+    count: pageItems.length,
+    total: totalReviews,
+    rating: product.rating,
+    data: pageItems,
+  });
+});

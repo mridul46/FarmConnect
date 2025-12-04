@@ -1,6 +1,6 @@
 // src/pages/Products.jsx
 import React, { useEffect, useMemo, useState, useRef } from "react";
-import ProductCard from "../components/Products/ProductCard/"; // optional now, but you can keep
+import ProductCard from "../components/Products/ProductCard/"; 
 import { Leaf, ShoppingCart, Search, LogOut } from "lucide-react";
 import Footer from "../components/layout/Footer";
 import { useNavigate } from "react-router-dom";
@@ -87,10 +87,9 @@ export default function Products() {
     if (!id) return;
     navigate(`/view-details/${id}`);
   };
-
-  const handleChat = (product) => {
-    console.log("Chat with farmer of product:", product);
-    // later: navigate(`/chat/${farmerId}`)
+  
+  const handleChat = () => {
+     navigate(`/chat/${farmerId}`)
   };
 
   // Derived filtered list (client-side) with robust distance sorting
