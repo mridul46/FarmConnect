@@ -18,7 +18,7 @@ import ConsumerRegister from "./pages/ConsumerRegister";
 import FarmerRegister from "./pages/FarmerRegister";
 
 import Unauthorized from "./pages/Unauthorized";
-import ProtectedRoute from "./components/Protected/ProtectedRoute"
+import ProtectedRoute from "./components/Protected/ProtectedRoute.jsx"
 import ProductDetailsUI from "./pages/ProductDetails";
 import AddToCard from "./pages/AddToCard"
 import Profile from "./components/consumerDashboard/Profile";
