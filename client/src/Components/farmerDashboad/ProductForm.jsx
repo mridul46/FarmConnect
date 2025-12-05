@@ -2,6 +2,37 @@ import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Upload, AlertCircle, CheckCircle, MapPin, Leaf, Droplet, Info, X } from "lucide-react";
 
+// --- HELPER COMPONENTS (Moved OUTSIDE the main component) ---
+
+const FormSection = ({ icon: Icon, title, children }) => (
+  <div className="space-y-4 pb-6 border-b border-gray-200 last:border-0">
+    <div className="flex items-center gap-3">
+      <div className="p-2 bg-green-100 rounded-lg shrink-0">
+        <Icon size={20} className="text-green-700" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+    </div>
+    {children}
+  </div>
+);
+
+const FormField = ({ label, error, required, children }) => (
+  <div className="w-full">
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    {children}
+    {error && (
+      <div className="mt-2 flex items-center gap-2 text-red-600 text-sm shrink-0">
+        <AlertCircle size={16} className="shrink-0" />
+        <span>{error}</span>
+      </div>
+    )}
+  </div>
+);
+
+// --- MAIN COMPONENT ---
+
 /**
  * ProductForm props:
  * - initial (object) - initial values for edit (optional)
@@ -25,6 +56,7 @@ export default function ProductForm({ initial = {}, onSubmit, submitLabel = "Sav
   const [minOrder, setMinOrder] = useState(initial.minOrder ?? 1);
   const [deliveryRadius, setDeliveryRadius] = useState(initial.deliveryRadius ?? 10);
   const [farmingMethod, setFarmingMethod] = useState(initial.farmingMethod ?? "");
+  
   const [nutrientsInput, setNutrientsInput] = useState(
     initial.nutrients
       ? Object.entries(initial.nutrients)
@@ -176,6 +208,11 @@ export default function ProductForm({ initial = {}, onSubmit, submitLabel = "Sav
     e.preventDefault();
     try {
       const payload = buildPayload();
+      
+      if (typeof onSubmit !== 'function') {
+        throw new Error("Submit handler is not defined");
+      }
+
       await onSubmit(payload, file);
     } catch (err) {
       console.error("submit product error", err);
@@ -183,37 +220,8 @@ export default function ProductForm({ initial = {}, onSubmit, submitLabel = "Sav
     }
   };
 
-  const FormSection = ({ icon: Icon, title, children }) => (
-    <div className="space-y-4 pb-6 border-b border-gray-200 last:border-0">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-green-100 rounded-lg shrink-0">
-          <Icon size={20} className="text-green-700" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-      </div>
-      {children}
-    </div>
-  );
-
-  const FormField = ({ label, error, required, children }) => (
-    <div className="w-full">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      {children}
-      {error && (
-        <div className="mt-2 flex items-center gap-2 text-red-600 text-sm shrink-0">
-          <AlertCircle size={16} className="shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-    </div>
-  );
-
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-4xl mx-auto "
-    
-    >
+    <form onSubmit={handleSubmit} className="w-full max-w-4xl mx-auto">
       <div className="space-y-6">
         {/* Basic Information */}
         <FormSection icon={Upload} title="Product Details">
@@ -518,6 +526,7 @@ export default function ProductForm({ initial = {}, onSubmit, submitLabel = "Sav
           <button
             type="submit"
             disabled={loading}
+            
             className="px-6 py-2.5 bg-linear-to-r from-green-600 to-green-700 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-green-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0"
           >
             {loading ? (
