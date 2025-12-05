@@ -15,7 +15,7 @@ import  messageRoutes from "./src/routes/message.routes.js"
 import chatRoomRoutes from "./src/routes/chatRoom.routes.js"
 const app = express();
 const corsOptions = {
-  origin: "http://localhost:5173",
+  origin: "https://farm-connect-three-psi.vercel.app",
   credentials: true,
   methods: ["GET", "POST", "PUT",  "PATCH" ,"DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization" , "Accept"],
