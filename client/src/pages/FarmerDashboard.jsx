@@ -1,13 +1,13 @@
 // src/pages/FarmerDashboard.jsx
 import React, { useEffect, useMemo, useState, useRef } from "react";
-import StatsCard from "../components/farmerDashboad/StatsCard";
-import QuickActions from "../components/farmerDashboad/QuickActions";
-import RecentActivity from "../components/farmerDashboad/RecentActivity";
-import OrdersTable from "../components/farmerDashboad/OrdersTable";
-import ProductsList from "../components/farmerDashboad/ProductsList";
-import EarningsCard from "../components/farmerDashboad/EarningsCard";
-import TopProducts from "../components/farmerDashboad/TopProducts";
-import Footer from "../components/layout/Footer";
+import StatsCard from "../Components/farmerDashboad/StatsCard";
+import QuickActions from "../Components/farmerDashboad/QuickActions";
+import RecentActivity from "../Components/farmerDashboad/RecentActivity";
+import OrdersTable from "../Components/farmerDashboad/OrdersTable";
+import ProductsList from "../Components/farmerDashboad/ProductsList";
+import EarningsCard from "../Components/farmerDashboad/EarningsCard";
+import TopProducts from "../Components/farmerDashboad/TopProducts";
+import Footer from "../Components/layout/Footer/";
 import { LogOut, Leaf, User as UserIcon } from "lucide-react";
 import { DollarSign, Package, Clock, CheckCircle } from "lucide-react";
 import { useAuth } from "../Context/authContext";

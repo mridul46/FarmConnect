@@ -1,13 +1,13 @@
 
 import React, { useEffect, useMemo, useState } from "react";
-import Header from "../components/consumerDashboard/Header.jsx";
-import StatsGrid from "../components/consumerDashboard/StatsGrid.jsx";
-import Tabs from "../components/consumerDashboard/Tabs.jsx";
-import ActiveOrders from "../components/consumerDashboard/ActiveOrders.jsx";
-import RecommendedProducts from "../components/consumerDashboard/RecommendedProducts";
-import OrdersList from "../components/consumerDashboard/OrdersList.jsx";
-import FavoritesList from "../components/consumerDashboard/FavoritesList.jsx";
-import Footer from "../components/layout/Footer.jsx";
+import Header from "../Components/consumerDashboard/Header.jsx";
+import StatsGrid from "../Components/consumerDashboard/StatsGrid.jsx";
+import Tabs from "../Components/consumerDashboard/Tabs.jsx";
+import ActiveOrders from "../Components/consumerDashboard/ActiveOrders.jsx";
+import RecommendedProducts from "../Components/consumerDashboard/RecommendedProducts";
+import OrdersList from "../Components/consumerDashboard/OrdersList.jsx";
+import FavoritesList from "../Components/consumerDashboard/FavoritesList.jsx";
+import Footer from "../Components/layout/Footer/";
 
 import { useProductContext } from "../Context/productsContext";
 import { useAuth } from "../Context/authContext";

@@ -1,14 +1,14 @@
 // src/pages/CheckoutPage.jsx
 import React, { useMemo, useState } from "react";
-import Header from "../components/checkout/Header";
-import DeliveryAddress from "../components/checkout/DeliveryAddress";
-import DeliveryOptions from "../components/checkout/DeliveryOptions";
-import PaymentProvider from "../components/checkout/PaymentProvider";
-import PaymentMethods from "../components/checkout/PaymentMethods";
-import CODSection from "../components/checkout/CODSection";
-import OrderSummary from "../components/checkout/OrderSummary";
-import Footer from "../components/layout/Footer";
-import { useProductContext } from "../Context/productsContext"; // adjust path if needed
+import Header from "../Components/checkout/Header";
+import DeliveryAddress from "../Components/checkout/DeliveryAddress";
+import DeliveryOptions from "../Components/checkout/DeliveryOptions";
+import PaymentProvider from "../Components/checkout/PaymentProvider";
+import PaymentMethods from "../Components/checkout/PaymentMethods";
+import CODSection from "../Components/checkout/CODSection";
+import OrderSummary from "../Components/checkout/OrderSummary";
+import Footer from "../Components/layout/Footer/";
+import { useProductContext } from "../Context/productsContext";
 
 export default function CheckoutPage() {
   const [selectedPayment, setSelectedPayment] = useState("razorpay");

@@ -1,6 +1,6 @@
 // src/pages/FarmerProfile.jsx
 import React from "react";
-import Profile from "../components/consumerDashboard/Profile";
+import Profile from "../Components/consumerDashboard/Profile";
 
 /**
  * FarmerProfile

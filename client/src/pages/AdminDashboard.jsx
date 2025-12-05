@@ -1,9 +1,9 @@
 import { useState } from "react";
 import React from "react";
-import Header from "../components/admin/Header";
-import StatsGrid from "../components/admin/StatsGrid";
-import SystemAlerts from "../components/admin/SystemAlerts";
-import DashboardTabs from "../components/admin/DashboardTabs";
+import Header from "../Components/admin/Header";
+import StatsGrid from "../Components/admin/StatsGrid";
+import SystemAlerts from "../Components/admin/SystemAlerts";
+import DashboardTabs from "../Components/admin/DashboardTabs";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");

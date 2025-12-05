@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useProductContext } from "../Context/productsContext";
 import { useAuth } from "../Context/authContext";
 import toast from "react-hot-toast";
-import PaginatedProducts from "../components/Products/PaginatedProducts";
+import PaginatedProducts from "../Components/Products/PaginatedProducts/";
 
 export default function Products() {
   const navigate = useNavigate();
