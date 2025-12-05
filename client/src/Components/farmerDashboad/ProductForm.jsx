@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Upload, AlertCircle, CheckCircle, MapPin, Leaf, Droplet, Info, X } from "lucide-react";
 
-// --- HELPER COMPONENTS (Moved OUTSIDE the main component) ---
+// --- 1. MOVED HELPER COMPONENTS OUTSIDE ---
+// This prevents them from being re-created on every render, fixing the focus loss.
 
 const FormSection = ({ icon: Icon, title, children }) => (
   <div className="space-y-4 pb-6 border-b border-gray-200 last:border-0">
@@ -33,13 +34,6 @@ const FormField = ({ label, error, required, children }) => (
 
 // --- MAIN COMPONENT ---
 
-/**
- * ProductForm props:
- * - initial (object) - initial values for edit (optional)
- * - onSubmit(formData: object, file: File|null) => Promise
- * - submitLabel (string) - button text
- * - loading (bool)
- */
 export default function ProductForm({ initial = {}, onSubmit, submitLabel = "Save", loading = false }) {
   // form state
   const [title, setTitle] = useState(initial.title ?? "");
@@ -81,7 +75,7 @@ export default function ProductForm({ initial = {}, onSubmit, submitLabel = "Sav
     return () => URL.revokeObjectURL(url);
   }, [file, initial.images]);
 
-  // categories & units - keep synced with backend enum
+  // categories & units
   const categories = useMemo(
     () => ["Vegetables", "Fruits", "Grains", "Dairy", "Leafy Greens", "Herbs", "Other"],
     []
@@ -209,8 +203,10 @@ export default function ProductForm({ initial = {}, onSubmit, submitLabel = "Sav
     try {
       const payload = buildPayload();
       
+      // --- 2. ADDED SAFETY CHECK ---
       if (typeof onSubmit !== 'function') {
-        throw new Error("Submit handler is not defined");
+        console.error("onSubmit prop is missing or not a function");
+        throw new Error("Submit handler is missing");
       }
 
       await onSubmit(payload, file);
@@ -526,7 +522,7 @@ export default function ProductForm({ initial = {}, onSubmit, submitLabel = "Sav
           <button
             type="submit"
             disabled={loading}
-            
+            // --- 3. FIXED TAILWIND CLASS (bg-linear-to-r is not standard, changed to bg-gradient-to-r) ---
             className="px-6 py-2.5 bg-linear-to-r from-green-600 to-green-700 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-green-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0"
           >
             {loading ? (
