@@ -1,20 +1,21 @@
-import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "../../Context/authContext";
+// client/src/components/protected/ProtectedRoute.jsx
 import React from "react";
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "../../Context/authContext"; 
 
-export default function ProtectedRoute({ allowedRoles=[] }) {
-  const { user, token } = useAuth();
+export default function ProtectedRoute({ allowedRoles }) {
+  const { user, token, role } = useAuth();
 
   // Not logged in → go to login
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  // Logged in but role not allowed → show unauthorized page
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
+  // If specific roles are required and user doesn't match → redirect
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    return <Navigate to="/" replace />;
   }
 
-  // Allowed → show the route
+  // Otherwise render nested routes
   return <Outlet />;
 }

@@ -18,10 +18,10 @@ import ConsumerRegister from "./pages/ConsumerRegister";
 import FarmerRegister from "./pages/FarmerRegister";
 
 import Unauthorized from "./pages/Unauthorized";
-import ProtectedRoute from "../src/components/protected/ProtectedRoute"
+import ProtectedRoute from "./components/protected/ProtectedRoute";
 import ProductDetailsUI from "./pages/ProductDetails";
 import AddToCard from "./pages/AddToCard"
-import Profile from "../src/components/consumerDashboard/Profile";
+import Profile from "./components/consumerDashboard/Profile";
 import FarmerProfile from "./pages/FarmerProfile";
 
 export default function App() {
