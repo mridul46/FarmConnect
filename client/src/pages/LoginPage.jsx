@@ -11,7 +11,7 @@ import {
 
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../Context/authContext";
-import RoleSelector from "../components/login/RoleSelector";
+import RoleSelector from "../Components/login/RoleSelector";
 import toast from "react-hot-toast";
 
 export default function LoginPage() {
