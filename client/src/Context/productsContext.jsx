@@ -483,6 +483,51 @@ const editProductByFarmer = useCallback(
   },
   [allProducts, fetchProductById, fetchProducts]
 );
+  // -------------------------
+  // Farmer: create product (supports optional image file)
+  // -------------------------
+  const createProductByFarmer = useCallback(
+    async (productData = {}, imageFile = null, { navigateTo = null, notify = false } = {}) => {
+      let res;
+      const url = `/products/`; // adjust if your backend uses a different route
+
+      if (imageFile) {
+        const fd = new FormData();
+
+        Object.entries(productData || {}).forEach(([k, v]) => {
+          if (v === undefined || v === null) return;
+          if (typeof v === "object" && !(v instanceof File) && !(v instanceof Blob)) {
+            fd.append(k, JSON.stringify(v));
+          } else {
+            fd.append(k, String(v));
+          }
+        });
+
+        // backend most likely expects field name "file"
+        fd.append("file", imageFile);
+
+        res = await api.post(url, fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      } else {
+        res = await api.post(url, productData);
+      }
+
+      const created = res.data?.data || res.data;
+
+      if (created) {
+        // add new product at top of list
+        setAllProducts((prev) => [created, ...(prev || [])]);
+      }
+
+      if (notify) {
+        addNotification("Product created successfully", "success");
+      }
+
+      return created;
+    },
+    [addNotification]
+  );
 
 // -------------------------
 // Top Products: By Sales
@@ -672,6 +717,7 @@ const getTopProductsBySales = useCallback(async (limit = 5, category = null) => 
     deleteProduct,
     getTopProductsBySales,
     editProductByFarmer,
+    createProductByFarmer,
     // notifications
     notifications,
     addNotification,

@@ -216,7 +216,7 @@ export default function ProductsList({
                   onClick={handleAddProduct}
                   className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-linear-to-r from-green-600 to-green-700 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 hover:from-green-700 hover:to-green-800 transition shadow-lg hover:shadow-xl shrink-0"
                 >
-                  <Plus size={16} sm={{ size: 18 }} className="hidden sm:inline" />
+                  <Plus size={16} className="hidden sm:inline" />
                   <Plus size={16} className="sm:hidden" />
                   <span className="hidden xs:inline">Add Product</span>
                   <span className="xs:hidden">Add</span>
@@ -311,7 +311,8 @@ export default function ProductsList({
                               alt={product.name || product.title}
                             />
                             <div className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md">
-                              <StockIcon size={16} sm={{ size: 18 }} className={`${stockStatus.color} w-4 h-4 sm:w-5 sm:h-5`} />
+                              <StockIcon size={16} className={`${stockStatus.color} w-4 h-4 sm:w-5 sm:h-5`} />
+
                             </div>
                           </div>
 
@@ -388,30 +389,31 @@ export default function ProductsList({
 
                               {/* Stock Update - Mobile Optimized */}
                               <div className="flex flex-col gap-1 sm:gap-2 min-w-0">
-                                <p className="text-xs text-gray-500 font-medium truncate">Update</p>
-                                <flex div className="flex gap-1 flex-col ">
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    placeholder="qty"
-                                    className="flex-1 px-2 py-1 sm:py-1.5 border border-gray-300 rounded text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    id={`add-stock-${id}`}
-                                    disabled={updating === id}
-                                  />
-                                  <button
-                                    onClick={() => {
-                                      const el = document.getElementById(`add-stock-${id}`);
-                                      const val = el ? Number(el.value) : NaN;
-                                      if (Number.isNaN(val) || val < 0) return toast.error("Enter valid stock");
-                                      handleUpdateStock(product, val);
-                                    }}
-                                    disabled={updating === id}
-                                    className="px-2 sm:px-3 py-3 sm:py-1.5 bg-green-600 text-white rounded text-xs sm:text-sm font-medium hover:bg-green-700 transition disabled:opacity-50 whitespace-nowrap"
-                                  >
-                                    Update
-                                  </button>
-                                </flex>
+                               <p className="text-xs text-gray-500 font-medium truncate">Update</p>
+                               <div className="flex gap-1 flex-col">
+                                 <input
+                                   type="number"
+                                   min={0}
+                                   placeholder="qty"
+                                   className="flex-1 px-2 py-1 sm:py-1.5 border border-gray-300 rounded text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                                   id={`add-stock-${id}`}
+                                   disabled={updating === id}
+                                 />
+                                 <button
+                                   onClick={() => {
+                                     const el = document.getElementById(`add-stock-${id}`);
+                                     const val = el ? Number(el.value) : NaN;
+                                     if (Number.isNaN(val) || val < 0) return toast.error("Enter valid stock");
+                                     handleUpdateStock(product, val);
+                                   }}
+                                   disabled={updating === id}
+                                   className="px-2 sm:px-3 py-3 sm:py-1.5 bg-green-600 text-white rounded text-xs sm:text-sm font-medium hover:bg-green-700 transition disabled:opacity-50 whitespace-nowrap"
+                                 >
+                                   Update
+                                 </button>
+                               </div>
                               </div>
+
                             </div>
 
                           </div>
