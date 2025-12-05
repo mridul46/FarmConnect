@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import ChatSidebar from "../Components/chat/ChatSidebar";
-import ChatWindow from "../components/chat/ChatWindow";
+import ChatWindow from "../Components/chat/ChatWindow";
 import Footer from "../Components/layout/Footer/";
 
 export default function ChatPage() {
