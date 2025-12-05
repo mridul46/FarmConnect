@@ -21,7 +21,7 @@ import Unauthorized from "./pages/Unauthorized";
 import ProtectedRoute from "../src/components/Protected/ProtectedRoute"
 import ProductDetailsUI from "./pages/ProductDetails";
 import AddToCard from "./pages/AddToCard"
-import Profile from "./components/consumerDashboard/Profile";
+import Profile from "../src/components/consumerDashboard/Profile";
 import FarmerProfile from "./pages/FarmerProfile";
 
 export default function App() {
