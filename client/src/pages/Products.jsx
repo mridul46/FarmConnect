@@ -1,8 +1,7 @@
 // src/pages/Products.jsx
 import React, { useEffect, useMemo, useState, useRef } from "react";
-import ProductCard from "../components/Products/ProductCard/"; 
 import { Leaf, ShoppingCart, Search, LogOut } from "lucide-react";
-import Footer from "../components/layout/Footer";
+import Footer from "../Components/layout/Footer";
 import { useNavigate } from "react-router-dom";
 import { useProductContext } from "../Context/productsContext";
 import { useAuth } from "../Context/authContext";
